@@ -7,6 +7,8 @@ import re
 import requests
 import youtube_dl
 
+from utils import unzip
+
 class Downloader:
 
     def __init__(self):
@@ -27,7 +29,8 @@ class Downloader:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
             if "imgur" in source and "/a/" in url:
-                raise Exception("Skip Imgur")
+                url += "/zip"
+                self.getAlbum([url], dest)
                 # headers = {}#"Authorization": f"Client-ID {client_id}"}
                 # response = requests.get(url, headers = headers)
 
@@ -37,6 +40,8 @@ class Downloader:
                 # self.getAlbum(urls, dest)
             elif "reddit" in source and "/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
+            elif ".gifv" in url:
+                self.getVid(url, dest)
             else:
                 self.getGeneric(url, dest)
         # if source.startswith("self."):
@@ -48,7 +53,8 @@ class Downloader:
         #         f.write(response.content)
         #         print(f"Downloaded {filename}")
         else:
-            print(f"Unkown domain for post '{title}': {source}")
+            # head = requests.head(url)["content-type"]
+            raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
         with requests.get(url, stream = True) as r:
@@ -81,3 +87,5 @@ class Downloader:
             print(f"[Downloading album: {count}/{len(urls)}]")
             count += 1
 
+        if "imgur" in urls[0]:
+            unzip(dest / "0.zip", dest.parent)

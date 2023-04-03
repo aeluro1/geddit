@@ -73,9 +73,9 @@ class Posts:
             self.msg(f"Added post {post.id} from r/{entry['sub']}")
             self._posts[post.id] = entry
         except Exception as e:
-            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
-            print(f"PROBLEM: {entry['url']}")
+            self.msg(f"Failed to add post {post.id} ({entry['url']}) from r/{entry['sub']}: {str(e)}")
             self._failedCount += 1
+            entry["errpr"] = str(e)
             self._failed[post.id] = entry
 
         self._counter += 1
