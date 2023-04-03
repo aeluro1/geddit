@@ -1,15 +1,60 @@
 import praw
 import json
-import pprint
+from pathlib import Path
 
-import link_parser as p
+from utils import toAscii
+
+class Posts:
+    post_path = Path("./data/posts.json")
+
+    def __init__(self):
+        if (Posts.post_path.is_file()):
+            with open(Posts.post_path) as f:
+                self._posts = json.load(f)
+        else:
+            self._posts = {}
+
+        self._newCount = 0
+
+    def getNewPosts(self, reddit):
+        for item in reddit.user.me().saved(limit = None):
+            if isinstance(item, praw.models.Submission):
+                self.addPost(item)
+
+    def addPost(self, post):
+        post.title = toAscii(post.title)
+        
+        entry = {
+            "sub": post.subreddit.display_name,
+            "title": post.title,
+            "author": (post.author.name if post.author is not None else None),
+            "date": post.created_utc,
+            "type": post.domain,
+            "url": post.url,
+            "url_dest": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else "")
+        }
+
+        if post.id in self._posts:
+            print(f"[Total: {len(self._posts)}][New: {self._newCount}] Skipped post '{entry['title']}' from '{entry['sub']}'. Already in database.")
+            return
+
+        self._posts[post.id] = entry
+        self._newCount += 1
+
+        print(f"[Total: {len(self._posts)}][New: {self._newCount}] Added post '{entry['title']}' from '{entry['sub']}'")
+
+    def save(self):
+        print("Saving posts to JSON...")
+        with open(Posts.post_path, "w") as f:
+            json.dump(self._posts, f, indent = 4)
+
 
 class Account:
     user_agent = "Geddit 1.0 by /u/aeluro1"
 
     def __init__(self):
         with open("user.json") as f:
-            self._info = json.load(f)
+            self._info = json.load(f)["reddit"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,
@@ -19,57 +64,15 @@ class Account:
             password = self._info["pass"]
         )
 
-        self._saved_posts = {}
-
-        for item in self._reddit.user.me().saved(limit = None):
-            if isinstance(item, praw.models.Submission):
-                self._saved_posts[item.id] = item
-                # type = {
-                #     None: None
-                # }
-                # entry = {
-                #     "title": item.title,
-                #     "id": item.id,
-                #     "author": item.author, # Redditor object
-                #     "url": item.url,
-                # created_utc, author_fullname, domain
-                #     "sub": None,
-                #     "type": type
-                # }
-
     @property
     def reddit(self):
         return self._reddit
-    
-    @property
-    def saved_posts(self):
-        return self._saved_posts
-
-class Node:
-    def __init__(self, submission):
-        if submission is None:
-            return None
-        self.name_
 
 def main():
-    test = Account()
-    
-    for item in test._reddit.user.me().saved(limit = None):
-        print(item)
-        pprint.pprint(vars(item))
-
-
-
-    # with open("list.txt", "w") as f:
-    #     for item in r.user.me().saved(limit=None):
-    #         print(item.id)
-    #         if isinstance(item, praw.Models.Submission): # Ignore comments
-    #             f.write()
-    #             if item.is_self:
-    #                 f.write(item.selftext + '\n')
-    #             else:
-    #                 f.write(item.url)
-    #         sub = r.submission(id = item.id)
+    r = Account()
+    p = Posts()
+    p.getNewPosts(r.reddit)
+    p.save()
 
 if __name__ == "__main__":
     main()

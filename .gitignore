@@ -1,4 +1,5 @@
-user.json
-.vscode
-__pycache__
-temp.txt
+/user.json
+/.vscode
+/__pycache__
+/temp.txt
+/data/*
