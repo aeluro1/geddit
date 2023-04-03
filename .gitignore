@@ -1,2 +1,4 @@
 user.json
 .vscode
+__pycache__
+temp.txt
