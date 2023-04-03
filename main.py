@@ -7,6 +7,7 @@ from download import Downloader
 
 class Posts:
     post_path = Path("data/posts.json")
+    fail_path = Path("data/failed.json")
     downloader = Downloader()
 
     def __init__(self):
@@ -18,22 +19,37 @@ class Posts:
 
         self._addedCount = 0
         self._failedCount = 0
+        self._failed = {}
+        self._counter = 0
 
     def getNewPosts(self, reddit):
         for item in reddit.user.me().saved(limit = None):
             if isinstance(item, praw.models.Submission):
+
+                if item.removed_by_category is not None:
+                    continue
+
+                xposts = item.__dict__.get("crosspost_parent_list", None)
+                if xposts is not None and len(xposts) > 0:
+                    item = reddit.submission(id = xposts[-1]["id"])
+
                 self.addPost(item)
 
     def addPost(self, post):
         post.title = toAscii(post.title)
         
+        media = post.__dict__.get("media_metadata", None)
+        mtype = (next(iter(media.values())))["m"] if media is not None else ""
+
         entry = {
             "sub": post.subreddit.display_name,
             "title": post.title,
             "author": (post.author.name if post.author is not None else None),
             "date": post.created_utc,
             "source": post.domain,
-            "mtype": next(iter(post.media_metadata.values()))["m"],
+            # # This line severely slows down the code as it disables lazy-loading
+            # "mtype": (next(iter(post.media_metadata.values()))["m"] if hasattr(post, "media_metadata") else ""),
+            "mtype": mtype,
             "url": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url),
             "data": "",
         }
@@ -53,21 +69,25 @@ class Posts:
                 urls.append(url)
             entry["data"] = urls
 
-
         if post.id in self._posts:
             self.msg(f"Skipped post {post.id} from r/{entry['sub']}. Already in database.")
             return
         
-        
-        self._posts[post.id] = entry
         try:
             Posts.downloader.download(entry)
             self._addedCount += 1
             self.msg(f"Added post {post.id} from r/{entry['sub']}")
+            self._posts[post.id] = entry
         except Exception as e:
             self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
             print(f"PROBLEM: {entry['url']}")
             self._failedCount += 1
+            self._failed[post.id] = entry
+
+        self._counter += 1
+        if self._counter == 100:
+            self.save()
+            self._counter = 0
 
     def save(self):
         self.msg("Saving posts to JSON...")
@@ -76,6 +96,9 @@ class Posts:
 
         with open(Posts.post_path, "w") as f:
             json.dump(self._posts, f, indent = 4)
+
+        with open(Posts.fail_path, "w") as f:
+            json.dump(self._failed, f, indent = 4)
 
     def msg(self, msg):
         print(f"[Total: {len(self._posts)}][Added: {self._addedCount}][Failed: {self._failedCount}] {msg}")

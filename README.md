@@ -21,7 +21,7 @@ This program backs up a Reddit user's saved posts.
 
 ## To Do
 - [ ] Implement bloom filter to determine whether post is already saved
-- [ ] Modify code logic to use response content-type to determine download method
+- [ ] Modify code logic to use response content-type to determine download method for unknown sources
 - [ ] Implement comment downloading
 - [ ] Implement progress bar with tqdm
 - [ ] Store data in database rather than JSON

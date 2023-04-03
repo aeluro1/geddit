@@ -27,16 +27,14 @@ class Downloader:
             self.getYT(url, dest)
         elif source in self._sources["img"]:
             if "imgur" in source and "/a/" in url:
-                # url += "/zip"
-                # path /= title
-                # self.getGeneric(url, path)
-                headers = {}#"Authorization": f"Client-ID {client_id}"}
-                response = requests.get(url, headers = headers)
+                raise Exception("Skip Imgur")
+                # headers = {}#"Authorization": f"Client-ID {client_id}"}
+                # response = requests.get(url, headers = headers)
 
-                album_data = response.json()["data"]
-                img_links = [img["link"] for img in album_data["images"]]
+                # album_data = response.json()["data"]
+                # urls = [img["link"] for img in album_data["images"]]
 
-                self.getAlbum(url, dest)
+                # self.getAlbum(urls, dest)
             elif "reddit" in source and "/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
             else:
