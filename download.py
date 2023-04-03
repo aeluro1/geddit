@@ -1,18 +1,13 @@
-import requests
 from pathlib import Path
+import requests
+import youtube_dl
 
 def download(entry, reddit):
     path = Path("data") / entry.sub
-    
+
     match entry.type:
         case "i.redd.it" | "i.imgur.com" | "redgifs.com":
             response = requests.get(entry.url)
-
-            if (response.status_code == 200):
-                response.raw.decode_content = True # what does this do?
-                with open(entry.title, "wb") as f:
-                    f.write(response.content)
-
         case "v.redd.it" | "gfycat.com":
             pass
         case "imgur.com":
@@ -46,4 +41,5 @@ def download(entry, reddit):
                 f.write(response.content)
                 print(f"Downloaded {filename}")
         case _:
+
             print(f"Unkown domain for post '{entry.id}': {entry.domain}")
