@@ -5,9 +5,12 @@
         "i.pinimg.com",
         "i.pximg.net",
         "i.redd.it",
-        ""
+        "imgur.com",
+        "reddit.com",
+        "redgifs.com"
     ],
     "vid": [
-        
+        "youtube.com",
+        "v.redd.it"
     ]
 }

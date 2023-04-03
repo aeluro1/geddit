@@ -1,5 +1,4 @@
 import requests
-import shutil
 
 def toAscii(str):
     """Helper function to remove unicode characters from string
@@ -17,7 +16,7 @@ def download(url, dest):
         with requests.get(url, stream = True) as r:
             r.raise_for_status()
             with open(dest, "wb") as f:
-                for chunk in r.iter_content(chunk_size = 1024 * 1024 * 10):
+                for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
                     f.write(chunk)
         return True
     except:

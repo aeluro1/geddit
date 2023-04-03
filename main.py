@@ -5,7 +5,7 @@ from pathlib import Path
 from utils import toAscii
 
 class Posts:
-    post_path = Path("./data/posts.json")
+    post_path = Path("data/posts.json")
 
     def __init__(self):
         if (Posts.post_path.is_file()):
