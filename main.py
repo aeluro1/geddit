@@ -37,9 +37,6 @@ class Posts:
 
     def addPost(self, post):
         post.title = toAscii(post.title)
-        
-        media = post.__dict__.get("media_metadata", None)
-        mtype = (next(iter(media.values())))["m"] if media is not None else ""
 
         entry = {
             "sub": post.subreddit.display_name,
@@ -47,9 +44,6 @@ class Posts:
             "author": (post.author.name if post.author is not None else None),
             "date": post.created_utc,
             "source": post.domain,
-            # # This line severely slows down the code as it disables lazy-loading
-            # "mtype": (next(iter(post.media_metadata.values()))["m"] if hasattr(post, "media_metadata") else ""),
-            "mtype": mtype,
             "url": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url),
             "data": "",
         }

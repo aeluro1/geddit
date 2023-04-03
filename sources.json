@@ -1,6 +1,5 @@
 {
     "img": [
-        "gfycat.com",
         "i.imgur.com",
         "i.pinimg.com",
         "i.pximg.net",
@@ -11,6 +10,8 @@
     ],
     "vid": [
         "youtube.com",
-        "v.redd.it"
+        "v.redd.it",
+        "redgifs.com",
+        "gfycat.com"
     ]
 }

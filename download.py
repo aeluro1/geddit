@@ -24,7 +24,7 @@ class Downloader:
         dest = dest / title
 
         if source in self._sources["vid"]:
-            self.getYT(url, dest)
+            self.getVid(url, dest)
         elif source in self._sources["img"]:
             if "imgur" in source and "/a/" in url:
                 raise Exception("Skip Imgur")
@@ -59,7 +59,7 @@ class Downloader:
                 for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
                     f.write(chunk)
         
-    def getYT(self, url, dest):
+    def getVid(self, url, dest):
         ydl_opts = {
                     # "quiet": True,
                     "no_warnings": True,
