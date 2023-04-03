@@ -15,11 +15,13 @@ This program backs up a Reddit user's saved posts.
 
     ```
     docker container run -v $(pwd)/data:/geddit/data geddit
+
+    docker container run -v %cd%/data:/geddit/data geddit
     ```
 
 ## To Do
 - [ ] Implement bloom filter to determine whether post is already saved
-- [ ] Look into enabling streaming data in requests for handling larger downloads
+- [ ] Modify code logic to use response content-type to determine download method
 - [ ] Implement comment downloading
 - [ ] Implement progress bar with tqdm
 - [ ] Store data in database rather than JSON

@@ -1,5 +1,5 @@
+.vscode
+__pycache__
 /user.json
-/.vscode
-/__pycache__
-/temp.txt
-/data/*
+/data
+/dev.py

@@ -3,9 +3,11 @@ import json
 from pathlib import Path
 
 from utils import toAscii
+from download import Downloader
 
 class Posts:
     post_path = Path("data/posts.json")
+    downloader = Downloader()
 
     def __init__(self):
         if (Posts.post_path.is_file()):
@@ -14,7 +16,8 @@ class Posts:
         else:
             self._posts = {}
 
-        self._newCount = 0
+        self._addedCount = 0
+        self._failedCount = 0
 
     def getNewPosts(self, reddit):
         for item in reddit.user.me().saved(limit = None):
@@ -29,24 +32,53 @@ class Posts:
             "title": post.title,
             "author": (post.author.name if post.author is not None else None),
             "date": post.created_utc,
-            "type": post.domain,
-            "url": post.url,
-            "url_dest": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else "")
+            "source": post.domain,
+            "mtype": next(iter(post.media_metadata.values()))["m"],
+            "url": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url),
+            "data": "",
         }
 
+        if "reddit" in entry["source"] and "/gallery/" in entry["url"]:
+            urls = []
+            ord = [i["media_id"] for i in post.gallery_data["items"]]
+            
+            # Get links to each image in Reddit gallery
+            for key in ord:
+                img = post.media_metadata[key]
+                if len(img["p"]) > 0:
+                    url = img["p"][-1]["u"]
+                else:
+                    url = img["s"]["u"]
+                url = url.split("?")[0].replace("preview", "i")
+                urls.append(url)
+            entry["data"] = urls
+
+
         if post.id in self._posts:
-            print(f"[Total: {len(self._posts)}][New: {self._newCount}] Skipped post '{entry['title']}' from '{entry['sub']}'. Already in database.")
+            self.msg(f"Skipped post {post.id} from r/{entry['sub']}. Already in database.")
             return
-
+        
+        
         self._posts[post.id] = entry
-        self._newCount += 1
-
-        print(f"[Total: {len(self._posts)}][New: {self._newCount}] Added post '{entry['title']}' from '{entry['sub']}'")
+        try:
+            Posts.downloader.download(entry)
+            self._addedCount += 1
+            self.msg(f"Added post {post.id} from r/{entry['sub']}")
+        except Exception as e:
+            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
+            print(f"PROBLEM: {entry['url']}")
+            self._failedCount += 1
 
     def save(self):
-        print("Saving posts to JSON...")
+        self.msg("Saving posts to JSON...")
+
+        Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
+
         with open(Posts.post_path, "w") as f:
             json.dump(self._posts, f, indent = 4)
+
+    def msg(self, msg):
+        print(f"[Total: {len(self._posts)}][Added: {self._addedCount}][Failed: {self._failedCount}] {msg}")
 
 
 class Account:
