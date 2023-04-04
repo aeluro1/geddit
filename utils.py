@@ -18,5 +18,5 @@ def unzip(src, dest):
         src (Path): Location of zip file to unzip
         dest (Path): Destination for zip file contents
     """
-    with zipfile.Zipfile(src) as zf:
+    with zipfile.ZipFile(src) as zf:
         zf.extractall(dest)

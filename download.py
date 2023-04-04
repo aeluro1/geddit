@@ -5,7 +5,8 @@ import json
 import re
 
 import requests
-import youtube_dl
+from yt_dlp import YoutubeDL
+from fake_useragent import UserAgent
 
 from utils import unzip
 
@@ -14,6 +15,7 @@ class Downloader:
     def __init__(self):
         with open("sources.json") as f:
             self._sources = json.load(f)
+
 
     def download(self, entry):
         dest = Path("data") / entry["sub"]
@@ -29,32 +31,23 @@ class Downloader:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
             if "imgur" in source and "/a/" in url:
-                url += "/zip"
-                self.getAlbum([url], dest)
-                # headers = {}#"Authorization": f"Client-ID {client_id}"}
-                # response = requests.get(url, headers = headers)
-
-                # album_data = response.json()["data"]
-                # urls = [img["link"] for img in album_data["images"]]
-
-                # self.getAlbum(urls, dest)
+                self.getImgurAlbum(url, dest)
             elif "reddit" in source and "/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
             elif ".gifv" in url:
                 self.getVid(url, dest)
             else:
                 self.getGeneric(url, dest)
-        # if source.startswith("self."):
-        #     url = entry.url
-        #     title = entry.title
-        #     filename = f"{title}.html"
-        #     with open(filename, "wb") as f:
-        #         response = reddit.session.get(url, headers = {"User-Agent": "Mozilla/5.0"})
-        #         f.write(response.content)
-        #         print(f"Downloaded {filename}")
+        elif source.startswith("self."):
+            self.getGeneric(url, dest)
         else:
-            # head = requests.head(url)["content-type"]
-            raise Exception(f"Unkown domain for post '{title}': {source}")
+            mediaType = requests.head(url).headers["content-type"]
+            if "image" in mediaType.lower():
+                self.getGeneric(url, dest)
+            elif "video" in mediaType.lower():
+                self.getVid(url, dest)
+            else:
+                raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
         with requests.get(url, stream = True) as r:
@@ -67,15 +60,16 @@ class Downloader:
         
     def getVid(self, url, dest):
         ydl_opts = {
-                    # "quiet": True,
-                    "no_warnings": True,
+                    "quiet": True,
+                    "no-check-certificate": True,
                     "outtmpl": f"{dest}.%(ext)s",
                     "postprocessors": [{
                         "key": "FFmpegVideoConvertor",
                         "preferedformat": "mp4"
-                    }]
+                    }],
+                    "logger": Logger()
                 }
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
     def getAlbum(self, urls, dest):
@@ -84,8 +78,39 @@ class Downloader:
 
         for url in urls:
             self.getGeneric(url, dest / str(count))
-            print(f"[Downloading album: {count}/{len(urls)}]")
             count += 1
+            print(f"[Downloading album: {count}/{len(urls)}]")
 
-        if "imgur" in urls[0]:
-            unzip(dest / "0.zip", dest.parent)
+    def getImgurAlbum(self, url, dest):        
+        dest.mkdir(parents = True, exist_ok = True)
+        dest = dest / "src.zip"
+
+        session = requests.Session()
+        ua = UserAgent().random
+        headers = {
+            "User-Agent": ua,
+            "Referer": url
+        }
+
+        url += "/zip"
+        response = session.get(url, headers = headers)
+
+        with open(dest, "wb") as f:
+            f.write(response.content)
+        unzip(dest, dest.parent)
+
+        # with requests.get(url, headers = headers, stream = True) as r:
+        #     r.raise_for_status()
+        #     with open(dest, "wb") as f:
+        #         for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
+        #             f.write(chunk)
+
+class Logger:
+    def debug(self, msg):
+        pass
+    def error(self, msg):
+        pass
+    def warning(self, msg):
+        pass
+    def error(self, msg):
+        pass

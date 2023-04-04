@@ -19,6 +19,8 @@ This program backs up a Reddit user's saved posts.
     docker container run -v %cd%/data:/geddit/data geddit
     ```
 
+4. To fetch Imgur albums, create an application and receive an API key. https://api.imgur.com/#registerapp
+
 ## To Do
 - [ ] Implement bloom filter to determine whether post is already saved
 - [ ] Modify code logic to use response content-type to determine download method for unknown sources

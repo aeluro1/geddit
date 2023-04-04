@@ -20,6 +20,7 @@ class Posts:
         self._addedCount = 0
         self._failedCount = 0
         self._failed = {}
+        self._skipped = 0
         self._counter = 0
 
     def getNewPosts(self, reddit):
@@ -64,6 +65,7 @@ class Posts:
             entry["data"] = urls
 
         if post.id in self._posts:
+            self._skipped += 1
             self.msg(f"Skipped post {post.id} from r/{entry['sub']}. Already in database.")
             return
         
@@ -73,9 +75,9 @@ class Posts:
             self.msg(f"Added post {post.id} from r/{entry['sub']}")
             self._posts[post.id] = entry
         except Exception as e:
-            self.msg(f"Failed to add post {post.id} ({entry['url']}) from r/{entry['sub']}: {str(e)}")
+            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
             self._failedCount += 1
-            entry["errpr"] = str(e)
+            entry["error"] = str(e)
             self._failed[post.id] = entry
 
         self._counter += 1
@@ -95,7 +97,7 @@ class Posts:
             json.dump(self._failed, f, indent = 4)
 
     def msg(self, msg):
-        print(f"[Total: {len(self._posts)}][Added: {self._addedCount}][Failed: {self._failedCount}] {msg}")
+        print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
 
 
 class Account:
@@ -103,7 +105,7 @@ class Account:
 
     def __init__(self):
         with open("user.json") as f:
-            self._info = json.load(f)["reddit"]
+            self._info = json.load(f)
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,

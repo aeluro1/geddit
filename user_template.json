@@ -1,11 +1,6 @@
 {
-    "reddit": {
-        "user": "",
-        "pass": "",
-        "client": "",
-        "secret": ""
-    },
-    "imgur": {
-        "client": ""
-    }
+    "user": "",
+    "pass": "",
+    "client": "",
+    "secret": ""
 }
