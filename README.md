@@ -1,6 +1,8 @@
 # geddit
 ---
-This program backs up a Reddit user's saved posts with an emphasis on media content.
+This program backs up a Reddit user's saved posts locally. It currently emphasizes saving media content, but the ability to download more saved content types will be implemented in the near future.
+
+Posts that have already been downloaded will be skipped in subsequent executions of the program. A record of saved and unsaved posts will be serialized and stored in the data directory as JSON files.
 
 ## Preparing the config files
 1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret key.
