@@ -5,7 +5,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 Posts that have already been downloaded will be skipped in subsequent executions of the program. A record of saved and unsaved posts will be serialized and stored in the data directory as JSON files.
 
 ## Preparing the config files
-1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret key.
+1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret.
     - Set the name to whatever you want, e.g. `geddit`
     - Set `script` as the API type
     - Set the redirect URI to `http://localhost:8080`
@@ -13,7 +13,7 @@ Posts that have already been downloaded will be skipped in subsequent executions
     - Set the name to `geddit`
     - Set `Anonymous usage without user authorization` as the authorization type
     - Set the email and description fields accordingly
-3. Rename the `user_template.json` file to `user.json`, and fill in uts fields with their corresponding API information.
+3. Rename the `user_template.json` file to `user.json`, and fill in its fields with their corresponding API information.
 
 ## Usage (Docker)
 1. Clone the repository.
