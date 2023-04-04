@@ -48,6 +48,7 @@ Posts that have already been downloaded will be skipped in subsequent executions
 
 ## To Do
 - [ ] Implement post and comment downloading
+- [ ] Implement multithreading
 - [ ] Implement progress bar with tqdm
 - [ ] Implement bloom filter to determine whether post is already saved, improve seek time
 
