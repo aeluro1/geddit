@@ -1,17 +1,17 @@
 # geddit
 ---
-This program backs up a Reddit user's saved posts.
+This program backs up a Reddit user's saved posts with an emphasis on media content.
 
 ## Preparing the config files
 1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret key.
     - Set the name to whatever you want, e.g. `geddit`
-    - Set 'script' as the API type
+    - Set `script` as the API type
     - Set the redirect URI to `http://localhost:8080`
 2. [Obtain an Imgur API key](https://api.imgur.com/oauth2/addclient) to facilitate downloading Imgur albums.
     - Set the name to `geddit`
     - Set 'Anonymous usage without user authorization' as the authorization type
     - Set the email and description fields accordingly
-3. Rename the 'user_template.json' file to 'user.json', and fill in the fields with their corresponding API information.
+3. Rename the `user_template.json` file to `user.json`, and fill in uts fields with their corresponding API information.
 
 ## Usage (Docker)
 1. Clone the repository.
@@ -20,7 +20,6 @@ This program backs up a Reddit user's saved posts.
     ```
     docker build --tag geddit .
     ```
-
 3. Start a container from the built image. Replace `$(pwd)` with `%cd%` on Windows.
 
     ```
@@ -37,7 +36,7 @@ This program backs up a Reddit user's saved posts.
     pip install -r requirements.txt
     ```
 
-3. [Download ffmpeg.](https://ffmpeg.org/download.html) for the video downloader.
+3. [Download ffmpeg](https://ffmpeg.org/download.html) for the video downloader.
 4. Run the program.
 
     ```
