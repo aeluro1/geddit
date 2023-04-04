@@ -2,7 +2,6 @@ import praw
 import json
 from pathlib import Path
 
-from utils import toAscii
 from download import Downloader
 
 class Posts:
@@ -37,7 +36,7 @@ class Posts:
                 self.addPost(item)
 
     def addPost(self, post):
-        post.title = toAscii(post.title)
+        post.title = post.title.encode("ascii", "ignore").decode()
 
         entry = {
             "sub": post.subreddit.display_name,
@@ -105,7 +104,7 @@ class Account:
 
     def __init__(self):
         with open("user.json") as f:
-            self._info = json.load(f)
+            self._info = json.load(f)["reddit"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,

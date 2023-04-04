@@ -6,22 +6,20 @@ import re
 
 import requests
 from yt_dlp import YoutubeDL
-from fake_useragent import UserAgent
-
-from utils import unzip
 
 class Downloader:
 
     def __init__(self):
         with open("sources.json") as f:
             self._sources = json.load(f)
-
+        with open("user.json") as f:
+            self._imgurKey = json.load(f)["imgur"]["client"]
 
     def download(self, entry):
         dest = Path("data") / entry["sub"]
         url = entry["url"]
         source = entry["source"]
-        title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])
+        title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])[:250]
 
         # Create subreddit folder if non-existent, then set 'dest' to include post file/folder
         dest.mkdir(parents = True, exist_ok = True)
@@ -31,7 +29,14 @@ class Downloader:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
             if "imgur" in source and "/a/" in url:
-                self.getImgurAlbum(url, dest)
+                id = url.split("/")[-1]
+                headers = {
+                    "Authorization": f"Client-ID {self._imgurKey}"
+                }
+                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers)
+                urls = [item["link"] for item in response.json()["data"]]
+
+                self.getAlbum(urls, dest)
             elif "reddit" in source and "/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
             elif ".gifv" in url:
@@ -80,30 +85,6 @@ class Downloader:
             self.getGeneric(url, dest / str(count))
             count += 1
             print(f"[Downloading album: {count}/{len(urls)}]")
-
-    def getImgurAlbum(self, url, dest):        
-        dest.mkdir(parents = True, exist_ok = True)
-        dest = dest / "src.zip"
-
-        session = requests.Session()
-        ua = UserAgent().random
-        headers = {
-            "User-Agent": ua,
-            "Referer": url
-        }
-
-        url += "/zip"
-        response = session.get(url, headers = headers)
-
-        with open(dest, "wb") as f:
-            f.write(response.content)
-        unzip(dest, dest.parent)
-
-        # with requests.get(url, headers = headers, stream = True) as r:
-        #     r.raise_for_status()
-        #     with open(dest, "wb") as f:
-        #         for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
-        #             f.write(chunk)
 
 class Logger:
     def debug(self, msg):
