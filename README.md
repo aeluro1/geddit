@@ -9,7 +9,7 @@ This program backs up a Reddit user's saved posts with an emphasis on media cont
     - Set the redirect URI to `http://localhost:8080`
 2. [Obtain an Imgur API key](https://api.imgur.com/oauth2/addclient) to facilitate downloading Imgur albums.
     - Set the name to `geddit`
-    - Set 'Anonymous usage without user authorization' as the authorization type
+    - Set `Anonymous usage without user authorization` as the authorization type
     - Set the email and description fields accordingly
 3. Rename the `user_template.json` file to `user.json`, and fill in uts fields with their corresponding API information.
 
@@ -20,6 +20,7 @@ This program backs up a Reddit user's saved posts with an emphasis on media cont
     ```
     docker build --tag geddit .
     ```
+
 3. Start a container from the built image. Replace `$(pwd)` with `%cd%` on Windows.
 
     ```
