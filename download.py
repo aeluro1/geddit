@@ -12,14 +12,13 @@ class Downloader:
     def __init__(self):
         with open("sources.json") as f:
             self._sources = json.load(f)
-        with open("user.json") as f:
-            self._imgurKey = json.load(f)["imgur"]["client"]
 
-    def download(self, entry):
+    def download(self, entry, id):
         dest = Path("data") / entry["sub"]
         url = entry["url"]
         source = entry["source"]
-        title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])[:250]
+        title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])
+        title = (id + " - " + title)[:250]
 
         # Create subreddit folder if non-existent, then set 'dest' to include post file/folder
         dest.mkdir(parents = True, exist_ok = True)
@@ -28,16 +27,7 @@ class Downloader:
         if source in self._sources["vid"]:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
-            if "imgur" in source and "/a/" in url:
-                id = url.split("/")[-1]
-                headers = {
-                    "Authorization": f"Client-ID {self._imgurKey}"
-                }
-                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers)
-                urls = [item["link"] for item in response.json()["data"]]
-
-                self.getAlbum(urls, dest)
-            elif "reddit" in source and "/gallery/" in url:
+            if "imgur" in source and "/a/" in url or "reddit" in source and "/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
             elif ".gifv" in url:
                 self.getVid(url, dest)
@@ -46,7 +36,8 @@ class Downloader:
         elif source.startswith("self."):
             self.getGeneric(url, dest)
         else:
-            mediaType = requests.head(url).headers["content-type"]
+            response = requests.head(url, timeout = 5)
+            mediaType = response.headers["content-type"]
             if "image" in mediaType.lower():
                 self.getGeneric(url, dest)
             elif "video" in mediaType.lower():
@@ -55,7 +46,7 @@ class Downloader:
                 raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
-        with requests.get(url, stream = True) as r:
+        with requests.get(url, stream = True, timeout = 5) as r:
             r.raise_for_status()
             ext = guess_extension(r.headers["content-type"].split(";")[0].strip())
             dest = Path(str(dest) + ext)
@@ -68,12 +59,13 @@ class Downloader:
                     "quiet": True,
                     "no-check-certificate": True,
                     "outtmpl": f"{dest}.%(ext)s",
-                    "postprocessors": [{
-                        "key": "FFmpegVideoConvertor",
-                        "preferedformat": "mp4"
-                    }],
+                    # "postprocessors": [{
+                    #     "key": "FFmpegVideoConvertor",
+                    #     "preferedformat": "mp4"
+                    # }],
                     "logger": Logger()
                 }
+        
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
@@ -84,7 +76,7 @@ class Downloader:
         for url in urls:
             self.getGeneric(url, dest / str(count))
             count += 1
-            print(f"[Downloading album: {count}/{len(urls)}]")
+            print(f"[Downloaded album: {count}/{len(urls)}]")
 
 class Logger:
     def debug(self, msg):

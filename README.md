@@ -14,9 +14,9 @@ This program backs up a Reddit user's saved posts.
 3. Start a container from the built image. Replace `$(pwd)` with `%cd%` on Windows.
 
     ```
-    docker container run -v $(pwd)/data:/geddit/data geddit
+    docker container run --network=host -it -v $(pwd)/data:/geddit/data geddit
 
-    docker container run -v %cd%/data:/geddit/data geddit
+    docker container run --network=host -it -v %cd%/data:/geddit/data geddit
     ```
 
 4. To fetch Imgur albums, create an application and receive an API key. https://api.imgur.com/#registerapp

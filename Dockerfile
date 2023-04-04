@@ -1,10 +1,12 @@
-FROM python:3.8-slim-buster
+FROM python:3.11.2-bullseye
 
-WORKDIR /geddit
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /geddit
 
 COPY requirements.txt requirements.txt
 

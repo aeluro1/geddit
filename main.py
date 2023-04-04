@@ -2,6 +2,8 @@ import praw
 import json
 from pathlib import Path
 
+import requests
+
 from download import Downloader
 
 class Posts:
@@ -9,12 +11,16 @@ class Posts:
     fail_path = Path("data/failed.json")
     downloader = Downloader()
 
-    def __init__(self):
+    def __init__(self, account):
         if (Posts.post_path.is_file()):
             with open(Posts.post_path) as f:
                 self._posts = json.load(f)
         else:
             self._posts = {}
+        
+        Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
+
+        self._account = account
 
         self._addedCount = 0
         self._failedCount = 0
@@ -22,10 +28,10 @@ class Posts:
         self._skipped = 0
         self._counter = 0
 
-    def getNewPosts(self, reddit):
+    def getNewPosts(self):
+        reddit = self._account.reddit
         for item in reddit.user.me().saved(limit = None):
             if isinstance(item, praw.models.Submission):
-
                 if item.removed_by_category is not None:
                     continue
 
@@ -36,6 +42,11 @@ class Posts:
                 self.addPost(item)
 
     def addPost(self, post):
+        if post.id in self._posts:
+            self._skipped += 1
+            self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
+            return
+
         post.title = post.title.encode("ascii", "ignore").decode()
 
         entry = {
@@ -48,6 +59,7 @@ class Posts:
             "data": "",
         }
 
+        # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         if "reddit" in entry["source"] and "/gallery/" in entry["url"]:
             urls = []
             ord = [i["media_id"] for i in post.gallery_data["items"]]
@@ -61,21 +73,27 @@ class Posts:
                     url = img["s"]["u"]
                 url = url.split("?")[0].replace("preview", "i")
                 urls.append(url)
+            
             entry["data"] = urls
-
-        if post.id in self._posts:
-            self._skipped += 1
-            self.msg(f"Skipped post {post.id} from r/{entry['sub']}. Already in database.")
-            return
+        
+        elif "imgur" in entry["source"] and "/a/" in entry["url"]:
+            id = entry["url"].split("/")[-1]
+            headers = {
+                "Authorization": f"Client-ID {self._account.imgurKey}"
+            }
+            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+            urls = [item["link"] for item in response.json()["data"]]
+            
+            entry["data"] = urls
         
         try:
-            Posts.downloader.download(entry)
+            Posts.downloader.download(entry, post.id)
             self._addedCount += 1
             self.msg(f"Added post {post.id} from r/{entry['sub']}")
             self._posts[post.id] = entry
         except Exception as e:
-            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
             self._failedCount += 1
+            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
             entry["error"] = str(e)
             self._failed[post.id] = entry
 
@@ -86,8 +104,6 @@ class Posts:
 
     def save(self):
         self.msg("Saving posts to JSON...")
-
-        Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
 
         with open(Posts.post_path, "w") as f:
             json.dump(self._posts, f, indent = 4)
@@ -104,7 +120,9 @@ class Account:
 
     def __init__(self):
         with open("user.json") as f:
-            self._info = json.load(f)["reddit"]
+            data = json.load(f)
+        self._info = data["reddit"]
+        self._imgurKey = data["imgur"]["client"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,
@@ -117,12 +135,16 @@ class Account:
     @property
     def reddit(self):
         return self._reddit
+    
+    @property
+    def imgurKey(self):
+        return self._imgurKey
 
 def main():
-    r = Account()
-    p = Posts()
-    p.getNewPosts(r.reddit)
-    p.save()
+    account = Account()
+    posts = Posts(account)
+    posts.getNewPosts()
+    posts.save()
 
 if __name__ == "__main__":
     main()
