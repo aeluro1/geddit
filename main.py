@@ -1,5 +1,6 @@
 import praw
 import json
+import csv
 from pathlib import Path
 
 import requests
@@ -9,6 +10,8 @@ from download import Downloader
 class Posts:
     post_path = Path("data/posts.json")
     fail_path = Path("data/failed.json")
+    csv_path = Path("saved_posts.csv")
+
     downloader = Downloader()
 
     def __init__(self, account):
@@ -25,7 +28,16 @@ class Posts:
 
     def getNewPosts(self):
         reddit = self._account.reddit
-        for item in reddit.user.me().saved(limit = None):
+        
+        names = self.loadCSV()
+        csvPosts = reddit.info(fullnames = names)
+        self.processPosts(csvPosts)
+
+        livePosts = reddit.user.me().saved(limit = None)
+        self.processPosts(livePosts)
+
+    def processPosts(self, posts):
+        for item in posts:
             if isinstance(item, praw.models.Submission):
                 # # Apparently, some removed posts still have links to redirected media. Therefore, this check skips some valid content.
                 # if item.removed_by_category is not None:
@@ -33,7 +45,7 @@ class Posts:
 
                 xposts = item.__dict__.get("crosspost_parent_list", None)
                 if xposts is not None and len(xposts) > 0:
-                    item = reddit.submission(id = xposts[-1]["id"])
+                    item = self._account.reddit.submission(id = xposts[-1]["id"])
 
                 self.addPost(item)
 
@@ -148,7 +160,17 @@ class Posts:
                 bad_posts.update(json.load(f))
 
         return (good_posts, bad_posts)
-
+    
+    def loadCSV(self):
+        if not self.csv_path.is_file():
+            return []
+        with open(self.csv_path, newline = "", encoding = "utf-8") as f:
+            reader = csv.reader(f)
+            ids = [row[0] for row in reader]
+            del ids[0]
+        names = [id if id.startswith("t3_") else f"t3_{id}" for id in ids]
+        return names
+            
     def msg(self, msg):
         print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
 
