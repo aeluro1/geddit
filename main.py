@@ -12,11 +12,7 @@ class Posts:
     downloader = Downloader()
 
     def __init__(self, account):
-        if (Posts.post_path.is_file()):
-            with open(Posts.post_path) as f:
-                self._posts = json.load(f)
-        else:
-            self._posts = {}
+        self._posts, self._failed = self.load()
         
         Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
 
@@ -24,7 +20,6 @@ class Posts:
 
         self._addedCount = 0
         self._failedCount = 0
-        self._failed = {}
         self._skipped = 0
         self._counter = 0
 
@@ -32,8 +27,9 @@ class Posts:
         reddit = self._account.reddit
         for item in reddit.user.me().saved(limit = None):
             if isinstance(item, praw.models.Submission):
-                if item.removed_by_category is not None:
-                    continue
+                # # Apparently, some removed posts still have links to redirected media. Therefore, this check skips some valid content.
+                # if item.removed_by_category is not None:
+                #     continue
 
                 xposts = item.__dict__.get("crosspost_parent_list", None)
                 if xposts is not None and len(xposts) > 0:
@@ -59,6 +55,24 @@ class Posts:
             "data": "",
         }
 
+        try:
+            self.processGallery(post, entry)
+            Posts.downloader.download(entry, post.id)
+            self._addedCount += 1
+            self._posts[post.id] = entry
+            self.msg(f"Added post {post.id} from r/{entry['sub']}")
+        except Exception as e:
+            self._failedCount += 1
+            entry["error"] = str(e)
+            self._failed[post.id] = entry
+            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
+
+        self._counter += 1
+        if self._counter == 50:
+            self.save(temp = True)
+            self._counter = 0
+
+    def processGallery(self, post, entry):
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         if "reddit" in entry["source"] and "/gallery/" in entry["url"]:
             urls = []
@@ -81,35 +95,59 @@ class Posts:
             headers = {
                 "Authorization": f"Client-ID {self._account.imgurKey}"
             }
-            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5, allow_redirects = True)
             urls = [item["link"] for item in response.json()["data"]]
             
             entry["data"] = urls
-        
-        try:
-            Posts.downloader.download(entry, post.id)
-            self._addedCount += 1
-            self.msg(f"Added post {post.id} from r/{entry['sub']}")
-            self._posts[post.id] = entry
-        except Exception as e:
-            self._failedCount += 1
-            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
-            entry["error"] = str(e)
-            self._failed[post.id] = entry
 
-        self._counter += 1
-        if self._counter == 100:
-            self.save()
-            self._counter = 0
-
-    def save(self):
+    def save(self, temp = False):
         self.msg("Saving posts to JSON...")
 
-        with open(Posts.post_path, "w") as f:
+        post_path = Posts.post_path
+        fail_path = Posts.fail_path
+        post_path_temp = Path(str(Posts.post_path) + "_temp")
+        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
+
+        if temp:
+            post_path = post_path_temp
+            fail_path = fail_path_temp
+        else:
+            if post_path_temp.is_file():
+                post_path_temp.unlink()
+            if fail_path_temp.is_file():
+                fail_path_temp.unlink()
+        
+        with open(post_path, "w") as f:
             json.dump(self._posts, f, indent = 4)
 
-        with open(Posts.fail_path, "w") as f:
+        with open(fail_path, "w") as f:
             json.dump(self._failed, f, indent = 4)
+
+    def load(self):
+        if Posts.post_path.is_file():
+            with open(Posts.post_path) as f:
+                good_posts = json.load(f)
+        else:
+            good_posts = {}
+
+        if Posts.fail_path.is_file():
+            with open(Posts.fail_path) as f:
+                bad_posts = json.load(f)
+        else:
+            bad_posts = {}
+
+        post_path_temp = Path(str(Posts.post_path) + "_temp")
+        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
+
+        if (post_path_temp).is_file():
+            with open(post_path_temp) as f:
+                good_posts.update(json.load(f))
+
+        if (fail_path_temp).is_file():
+            with open(fail_path_temp) as f:
+                bad_posts.update(json.load(f))
+
+        return (good_posts, bad_posts)
 
     def msg(self, msg):
         print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
@@ -144,7 +182,7 @@ def main():
     account = Account()
     posts = Posts(account)
     posts.getNewPosts()
-    posts.save()
+    posts.save(temp = False)
 
 if __name__ == "__main__":
     main()
