@@ -2,6 +2,8 @@
 ---
 This program backs up a Reddit user's saved posts locally. It currently emphasizes saving media content, but the ability to download more saved content types will be implemented in the near future.
 
+**It is now also able to download the user's <ins>entire saved post list</ins>. See below for details.**
+
 Posts that have already been downloaded will be skipped in subsequent executions of the program. A record of saved and unsaved posts will be serialized and stored in the data directory as JSON files.
 
 ## Preparing the config files
@@ -14,6 +16,10 @@ Posts that have already been downloaded will be skipped in subsequent executions
     - Set `Anonymous usage without user authorization` as the authorization type
     - Set the email and description fields accordingly
 3. Rename the `user_template.json` file to `user.json`, and fill in its fields with their corresponding API information.
+
+## Downloading all saved posts
+1. [Request your Reddit data](https://www.reddit.com/settings/data-request) as a zip file.
+2. Move the `saved_posts.csv` within the zip file into the home directory of the repository.
 
 ## Usage (Docker)
 1. Clone the repository.
