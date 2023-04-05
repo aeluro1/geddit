@@ -45,8 +45,8 @@ This program backs up a Reddit user's saved posts with an emphasis on media cont
     ```
 
 ## To Do
-- [ ] Implement post and comment downloading
-- [ ] Implement progress bar with tqdm
-- [ ] Implement bloom filter to determine whether post is already saved, improve seek time
+- [ ] Add post and comment downloading
+- [ ] Add progress bar with tqdm
+- [ ] Add bloom filter to determine whether post is already saved, improve seek time
 
 - [ ] Investigate why Docker environment forces Requests to use IPv6 by default, leading to some weird hanging issues
