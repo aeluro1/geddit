@@ -26,19 +26,20 @@ class Posts:
         self._skipped = 0
         self._counter = 0
 
-    def loadItems(self, reddit = True, csv = False):
-        pass
+    def loadItems(self, sources):
+        allItems = set()
+        for source in sources:
+            allItems.update([item for item in source])
 
     def getAllItems(self):
         reddit = self._account.reddit
         
-        allItems = set()
-
-        csvPosts = reddit.info(fullnames = self.loadCSV())
-        allItems.update([item for item in csvPosts])
-
+        csvItems = reddit.info(fullnames = self.loadCSV())
         liveItems = reddit.user.me().saved(limit = None)
-        allItems.update([item for item in csvPosts])
+        allItems = self.loadItems([csvItems, liveItems])
+
+    def initWorker(self):
+        pass
 
     def getNewPosts(self):
         reddit = self._account.reddit
