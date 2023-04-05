@@ -1,11 +1,13 @@
 import praw
 import json
 import csv
+import argparse
 from pathlib import Path
 
 import requests
 
 from download import Downloader
+from utils import trueLink, getPreview
 
 class Posts:
     post_path = Path("data/posts.json")
@@ -30,8 +32,9 @@ class Posts:
         allItems = set()
         for source in sources:
             allItems.update([item for item in source])
+        return allItems
 
-    def getAllItems(self):
+    def getItems(self):
         reddit = self._account.reddit
         
         csvItems = reddit.info(fullnames = self.loadCSV())
@@ -71,14 +74,17 @@ class Posts:
             return
 
         post.title = post.title.encode("ascii", "ignore").decode()
+        url = post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url
+        url = trueLink(url)
 
         entry = {
             "sub": post.subreddit.display_name,
             "title": post.title,
             "author": (post.author.name if post.author is not None else None),
             "date": post.created_utc,
+            "url_preview": getPreview(post),
             "source": post.domain,
-            "url": (post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url),
+            "url": url,
             "data": "",
         }
 
@@ -98,6 +104,8 @@ class Posts:
         if self._counter == 50:
             self.save(temp = True)
             self._counter = 0
+
+
 
     def processGallery(self, post, entry):
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
@@ -222,4 +230,14 @@ def main():
     posts.save(temp = False)
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser(description = "Geddit")
+    parser.add_argument(
+        "--debug", "-d",
+        action = "store_true",
+        dest = "debug",
+        help = "true: download; false: print",
+    )
+    args = parser.parse_args()
+
+    main(args)

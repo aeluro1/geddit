@@ -7,23 +7,25 @@ import re
 import requests
 from yt_dlp import YoutubeDL
 
+from utils import BlankLogger
+
 class Downloader:
 
     def __init__(self):
         with open("sources.json") as f:
             self._sources = json.load(f)
 
-    def download(self, entry, id):
+    def download(self, entry, prefix):
         dest = Path("data") / entry["sub"]
         url = entry["url"]
         source = entry["source"]
         title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])
-        title = (id + " - " + title)[:250]
+        title = (prefix + " - " + title)[:250]
 
         # Create subreddit folder if non-existent, then set 'dest' to include post file/folder
         dest.mkdir(parents = True, exist_ok = True)
         dest = dest / title
-
+        
         if source in self._sources["vid"]:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
@@ -63,7 +65,7 @@ class Downloader:
                     #     "key": "FFmpegVideoConvertor",
                     #     "preferedformat": "mp4"
                     # }],
-                    "logger": Logger()
+                    "logger": BlankLogger()
                 }
         
         with YoutubeDL(ydl_opts) as ydl:
@@ -77,13 +79,3 @@ class Downloader:
             self.getGeneric(url, dest / str(count))
             count += 1
             print(f"[Downloaded album: {count}/{len(urls)}]")
-
-class Logger:
-    def debug(self, msg):
-        pass
-    def error(self, msg):
-        pass
-    def warning(self, msg):
-        pass
-    def error(self, msg):
-        pass
