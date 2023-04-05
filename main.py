@@ -89,6 +89,7 @@ class Posts:
         }
 
         try:
+            entry["url"] = requests.head(entry["url"], allow_redirects = True, timeout = 5).url
             self.processGallery(post, entry)
             Posts.downloader.download(entry, post.id)
             self._addedCount += 1
