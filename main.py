@@ -104,16 +104,18 @@ class Posts:
         self.msg("Saving posts to JSON...")
 
         post_path = Posts.post_path
-        post_path_temp = post_path / "_temp"
         fail_path = Posts.fail_path
-        fail_path_temp = fail_path / "_temp"
+        post_path_temp = Path(str(Posts.post_path) + "_temp")
+        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
 
         if temp:
             post_path = post_path_temp
             fail_path = fail_path_temp
         else:
-            post_path_temp.unlink()
-            fail_path_temp.unlink()
+            if post_path_temp.is_file():
+                post_path_temp.unlink()
+            if fail_path_temp.is_file():
+                fail_path_temp.unlink()
         
         with open(post_path, "w") as f:
             json.dump(self._posts, f, indent = 4)
@@ -134,8 +136,8 @@ class Posts:
         else:
             bad_posts = {}
 
-        post_path_temp = Posts.post_path / "_temp"
-        fail_path_temp = Posts.fail_path / "_temp"
+        post_path_temp = Path(str(Posts.post_path) + "_temp")
+        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
 
         if (post_path_temp).is_file():
             with open(post_path_temp) as f:
