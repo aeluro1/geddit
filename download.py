@@ -60,8 +60,8 @@ class Downloader:
                     f.write(chunk)
 
     def getText(self, data, dest):
-        dest = Path(str(dest) + ".txt")
-        with open(dest, "w") as f:
+        dest = Path(str(dest) + ".md")
+        with open(dest, "w", encoding = "utf-8") as f:
             f.write(data)
         
     def getVid(self, url, dest):
