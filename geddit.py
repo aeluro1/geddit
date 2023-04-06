@@ -155,7 +155,7 @@ class Posts:
         return urls
     
     def saveAll(self, temp: bool = False):
-        files = [(Posts.post_path, self._posts), (Posts.fail_path, self._failed)]
+        files = [(self._posts, Posts.post_path), (self._failed, Posts.fail_path)]
         for (data, path) in files:
             self.save(data, path, temp = temp)
 
