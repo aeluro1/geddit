@@ -28,44 +28,35 @@ class Posts:
         self._skipped = 0
         self._counter = 0
 
-    def loadItems(self, sources):
-        allItems = set()
-        for source in sources:
-            allItems.update([item for item in source])
-        return allItems
-
     def getItems(self):
         reddit = self._account.reddit
         
         csvItems = reddit.info(fullnames = self.loadCSV())
         liveItems = reddit.user.me().saved(limit = None)
-        allItems = self.loadItems([csvItems, liveItems])
+        sources = [csvItems, liveItems]
 
-    def initWorker(self):
-        pass
+        allItems = set()
+        for source in sources:
+            allItems.update([item for item in source])
 
-    def getNewPosts(self):
-        reddit = self._account.reddit
-        
-        names = self.loadCSV()
-        csvPosts = reddit.info(fullnames = names)
-        self.processPosts(csvPosts)
+        for item in allItems:
+            self.processItem(item)
 
-        livePosts = reddit.user.me().saved(limit = None)
-        self.processPosts(livePosts)
+    def processItem(self, item):
+        if isinstance(item, praw.models.Submission):
+            self.fixCrosspost(item)
 
-    def processPosts(self, posts):
-        for item in posts:
-            if isinstance(item, praw.models.Submission):
-                # # Apparently, some removed posts still have links to redirected media. Therefore, this check skips some valid content.
-                # if item.removed_by_category is not None:
-                #     continue
+        else:
+            pass
 
-                xposts = item.__dict__.get("crosspost_parent_list", None)
-                if xposts is not None and len(xposts) > 0:
-                    item = self._account.reddit.submission(id = xposts[-1]["id"])
+    def generateEntry(self, entry):
 
-                self.addPost(item)
+
+
+    def fixCrosspost(self, item):
+        xposts = item.__dict__.get("crosspost_parent_list", None)
+        if xposts is not None and len(xposts) > 0:
+            item = self._account.reddit.submission(id = xposts[-1]["id"])
 
     def addPost(self, post):
         if post.id in self._posts:
@@ -90,6 +81,7 @@ class Posts:
 
         try:
             entry["url"] = requests.head(entry["url"], allow_redirects = True, timeout = 5).url
+
             self.processGallery(post, entry)
             Posts.downloader.download(entry, post.id)
             self._addedCount += 1
@@ -131,7 +123,7 @@ class Posts:
             headers = {
                 "Authorization": f"Client-ID {self._account.imgurKey}"
             }
-            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5, allow_redirects = True)
+            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
             urls = [item["link"] for item in response.json()["data"]]
             
             entry["data"] = urls
@@ -224,7 +216,7 @@ class Account:
     def imgurKey(self):
         return self._imgurKey
 
-def main():
+def main(args):
     account = Account()
     posts = Posts(account)
     posts.getNewPosts()
@@ -237,7 +229,7 @@ if __name__ == "__main__":
         "--debug", "-d",
         action = "store_true",
         dest = "debug",
-        help = "true: download; false: print",
+        help = "to activate debug mode, where no files are downloaded",
     )
     args = parser.parse_args()
 

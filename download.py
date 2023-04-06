@@ -48,7 +48,7 @@ class Downloader:
                 raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
-        with requests.get(url, stream = True, timeout = 5, allow_redirects = True) as r:
+        with requests.get(url, stream = True, timeout = 5) as r:
             r.raise_for_status()
             ext = guess_extension(r.headers["content-type"].split(";")[0].strip())
             dest = Path(str(dest) + ext)
