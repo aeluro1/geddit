@@ -7,7 +7,8 @@ from pathlib import Path
 import requests
 
 from download import Downloader
-from utils import trueLink, getPreview
+from utils import trueLink
+
 
 class Posts:
     post_path = Path("data/posts.json")
@@ -18,6 +19,7 @@ class Posts:
 
     def __init__(self, account):
         self._posts, self._failed = self.load()
+        self._allEntries = {}
         
         Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
 
@@ -40,70 +42,81 @@ class Posts:
             allItems.update([item for item in source])
 
         for item in allItems:
-            self.processItem(item)
+            self._allEntries[item.id] = self.processItem(item)
+
+    def downloadAll(self):
+        for (key, val) in enumerate(self._allEntries):
+            self.downloadEntry(val, key)
 
     def processItem(self, item):
+        print(item)
         if isinstance(item, praw.models.Submission):
-            self.fixCrosspost(item)
-
+            item = self.fixCrosspost(item)
+            entry = self.generateEntry(item)
+            entry["data"] = self.processGallery(entry["url"])
+            
+            return entry
         else:
+            # Handle comments here
             pass
 
-    def generateEntry(self, entry):
-
-
-
-    def fixCrosspost(self, item):
-        xposts = item.__dict__.get("crosspost_parent_list", None)
-        if xposts is not None and len(xposts) > 0:
-            item = self._account.reddit.submission(id = xposts[-1]["id"])
-
-    def addPost(self, post):
-        if post.id in self._posts:
-            self._skipped += 1
-            self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
-            return
-
-        post.title = post.title.encode("ascii", "ignore").decode()
-        url = post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url
-        url = trueLink(url)
+    def generateEntry(self, item):
+        title = item.title.encode("ascii", "ignore").decode()
+        author = item.author.name if item.author is not None else None
+        url = item.url_overridden_by_dest if hasattr(item, "url_overridden_by_dest") else item.url
+        try:
+            url_preview = item.preview["items"][0]["source"]["url"]
+        except:
+            url_preview = None
 
         entry = {
-            "sub": post.subreddit.display_name,
-            "title": post.title,
-            "author": (post.author.name if post.author is not None else None),
-            "date": post.created_utc,
-            "url_preview": getPreview(post),
-            "source": post.domain,
-            "url": url,
-            "data": "",
+            "sub": item.subreddit.display_name,
+            "title": title,
+            "author": author,
+            "date": item.created_utc,
+            "source": item.domain,
+            "url": trueLink(url),
+            "url_preview": url_preview,
+            "data": None,
         }
+        return entry
+
+    def downloadEntry(self, entry, id):
+        if id in self._posts:
+            self._skipped += 1
+            self.msg(f"Skipped post {id} from r/{entry['sub']} - already in database")
+            return
 
         try:
-            entry["url"] = requests.head(entry["url"], allow_redirects = True, timeout = 5).url
-
-            self.processGallery(post, entry)
-            Posts.downloader.download(entry, post.id)
+            Posts.downloader.download(entry, id)
             self._addedCount += 1
-            self._posts[post.id] = entry
-            self.msg(f"Added post {post.id} from r/{entry['sub']}")
+            self._posts[id] = entry
+            self.msg(f"Added post {id} from r/{entry['sub']}")
         except Exception as e:
             self._failedCount += 1
             entry["error"] = str(e)
-            self._failed[post.id] = entry
-            self.msg(f"Failed to add post {post.id} from r/{entry['sub']}: {str(e)}")
+            self._failed[id] = entry
+            self.msg(f"Failed to add post {id} from r/{entry['sub']}: {str(e)}")
 
         self._counter += 1
         if self._counter == 50:
             self.save(temp = True)
             self._counter = 0
 
+    def fixCrosspost(self, item):
+        xposts = item.__dict__.get("crosspost_parent_list", None)
+        if xposts is not None and len(xposts) > 0:
+            item = self._account.reddit.submission(id = xposts[-1]["id"])
+        return item
 
-
-    def processGallery(self, post, entry):
+    def processGallery(self, link):
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
-        if "reddit" in entry["source"] and "/gallery/" in entry["url"]:
-            urls = []
+        id = link.strip("/").split("/")[-1]
+        urls = []
+        
+        if "reddit.com/gallery/" in link:
+            post = self._account.reddit.submission(id)
+
             ord = [i["media_id"] for i in post.gallery_data["items"]]
             
             # Get links to each image in Reddit gallery
@@ -115,18 +128,15 @@ class Posts:
                     url = img["s"]["u"]
                 url = url.split("?")[0].replace("preview", "i")
                 urls.append(url)
-            
-            entry["data"] = urls
         
-        elif "imgur" in entry["source"] and "/a/" in entry["url"]:
-            id = entry["url"].split("/")[-1]
+        elif "imgur.com/a/" in link:
             headers = {
                 "Authorization": f"Client-ID {self._account.imgurKey}"
             }
             response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
             urls = [item["link"] for item in response.json()["data"]]
             
-            entry["data"] = urls
+        return urls
 
     def save(self, temp = False):
         self.msg("Saving posts to JSON...")
@@ -219,7 +229,7 @@ class Account:
 def main(args):
     account = Account()
     posts = Posts(account)
-    posts.getNewPosts()
+    posts.getItems()
     posts.save(temp = False)
 
 if __name__ == "__main__":
