@@ -19,7 +19,7 @@ class Posts:
 
     def __init__(self, account: "Account", args: argparse.Namespace):
         self._posts = self.loadJSON(Posts.post_path)
-        self._failed  = self.loadJSON(Posts.fail_path)
+        self._failed  = {}
 
         self._allPosts = []
         
@@ -160,7 +160,10 @@ class Posts:
             self.save(data, path, temp = temp)
 
     def save(self, data: dict, path: Path, temp: bool = False):
-        self.msg("Saving posts to JSON...")
+        if self._debug:
+            path = Path(str(path) + "_debug")
+
+        self.msg(f"Saving item to JSON...")
 
         path_temp = Path(str(path) + "_temp")
 

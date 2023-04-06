@@ -27,30 +27,44 @@ class Downloader:
         dest.mkdir(parents = True, exist_ok = True)
         dest = dest / title
 
-        if source in self._sources["vid"]:
+        if source in self._sources["vid"]: # Video detected
             self.getVid(url, dest)
-        elif source in self._sources["img"]:
-            if "imgur.com/a/" in url or "reddit.com/gallery/" in url:
+            return
+
+        if source in self._sources["img"]: # Image detected
+            if "imgur.com/a/" in url or "reddit.com/gallery/" in url: # Fetch reddit gallery
                 self.getAlbum(entry["data"], dest)
-            elif ".gifv" in url:
+            elif ".gifv" in url: # Edge case for gif video
                 self.getVid(url, dest)
-            elif "/removed." in url:
+            elif "/removed." in url: # Edge case where Imgur image is deleted but Reddit cached it
                 self.getGeneric(entry["url_preview"], dest)
-            else:
-                self.getGeneric(url, dest)
-        elif source.startswith("self."):
+            else: # Known image
+                try:
+                    self.getGeneric(url, dest)
+                except:
+                    self.getGeneric(entry["url_preview"], dest)
+            return
+
+        if source.startswith("self."): # Text post
             self.getText(entry["data"], dest)
-        elif entry["url_preview"] != "":
-            self.getGeneric(entry["url_preview"], dest)
-        else:
+            return
+
+        try: # Unknown post format - see if media type is encoded in HTTP response
             response = requests.head(url, timeout = 5, allow_redirects = True)
             mediaType = response.headers["content-type"]
             if "image" in mediaType.lower():
                 self.getGeneric(url, dest)
             elif "video" in mediaType.lower():
                 self.getVid(url, dest)
-            else:
-                raise Exception(f"Unkown domain for post '{title}': {source}")
+            return
+        except:
+            pass
+        
+        if entry["url_preview"] != "": # Unknown post format, but it has a downloadable preview
+            self.getGeneric(entry["url_preview"], dest)
+            return
+
+        raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
         with requests.get(url, stream = True, timeout = 5) as r:

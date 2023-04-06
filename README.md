@@ -6,6 +6,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 * Back up your ***entire saved history (>1000 items)*** from a .csv file provided by Reddit
 * Download saved text posts and media content (gifs, videos, albums) from a variety of sources
 * Store a record of all saved and unsaved posts locally, skipping already-saved posts in subsequent program executions
+
 ## Preparing the config files
 1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret.
     - Set the name to whatever you want, e.g. `geddit`
@@ -55,6 +56,6 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 
 ## To Do
 - [x] Implement post ~~and comment~~ downloading
-- [ ] Implement multithreading
-- [ ] Implement progress bar with tqdm
-- [ ] Implement bloom filter to determine whether post is already saved, improve seek time
+- [ ] Add multithreading
+- [ ] Add progress bar with tqdm
+- [ ] Add bloom filter to determine whether post is already saved, improve seek time
