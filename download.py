@@ -40,6 +40,8 @@ class Downloader:
                 self.getGeneric(url, dest)
         elif source.startswith("self."):
             self.getText(entry["data"], dest)
+        elif entry["url_preview"] != "":
+            self.getGeneric(entry["url_preview"], dest)
         else:
             response = requests.head(url, timeout = 5, allow_redirects = True)
             mediaType = response.headers["content-type"]

@@ -50,7 +50,7 @@ class Posts:
     def downloadPost(self, post):
         if post.id in self._posts:
             self._skipped += 1
-            self.msg(f"Skipped post {id} from r/{post.subreddit.display_name} - already in database")
+            self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
             return
         
         if not isinstance(post, praw.models.Submission): # Comment
