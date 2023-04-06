@@ -17,9 +17,11 @@ class Posts:
 
     downloader = Downloader()
 
-    def __init__(self, account):
-        self._posts, self._failed = self.load()
-        self._allEntries = {}
+    def __init__(self, account: "Account", args: argparse.Namespace):
+        self._posts = self.loadJSON(Posts.post_path)
+        self._failed  = self.loadJSON(Posts.fail_path)
+
+        self._allPosts = []
         
         Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
 
@@ -30,58 +32,63 @@ class Posts:
         self._skipped = 0
         self._counter = 0
 
-    def getItems(self):
+        self._debug = args.debug
+        self._csv = args.csv
+
+    def getPosts(self):
         reddit = self._account.reddit
         
-        csvItems = reddit.info(fullnames = self.loadCSV())
-        liveItems = reddit.user.me().saved(limit = None)
-        sources = [csvItems, liveItems]
-
-        allItems = set()
-        for source in sources:
-            allItems.update([item for item in source])
-
-        for item in allItems:
-            self._allEntries[item.id] = self.processItem(item)
+        if self._csv:
+            self._allPosts = reddit.info(fullnames = self.loadCSV(Posts.csv_path))
+        else:
+            self._allPosts = reddit.user.me().saved(limit = None)
 
     def downloadAll(self):
-        for (key, val) in enumerate(self._allEntries):
-            self.downloadEntry(val, key)
+        for post in self._allPosts:
+            self.downloadPost(post)
+        
+    def downloadPost(self, post: praw.models.Submission):
+        entry = self.processPost(post)
+        self.downloadEntry(entry, post.id)
 
-    def processItem(self, item):
-        print(item)
-        if isinstance(item, praw.models.Submission):
-            item = self.fixCrosspost(item)
-            entry = self.generateEntry(item)
-            entry["data"] = self.processGallery(entry["url"])
+    def processPost(self, post: praw.models.Submission) -> dict:
+        print(post)
+        if isinstance(post, praw.models.Submission):
+            post = self.fixCrosspost(post)
+            entry = self.generateEntry(post)
             
             return entry
         else:
             # Handle comments here
             pass
 
-    def generateEntry(self, item):
-        title = item.title.encode("ascii", "ignore").decode()
-        author = item.author.name if item.author is not None else None
-        url = item.url_overridden_by_dest if hasattr(item, "url_overridden_by_dest") else item.url
+    def generateEntry(self, post: praw.models.Submission):
+        title = post.title.encode("ascii", "ignore").decode()
+        author = post.author.name if post.author is not None else None
+        url = post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url
         try:
-            url_preview = item.preview["items"][0]["source"]["url"]
+            url_preview = post.preview["posts"][0]["source"]["url"]
         except:
             url_preview = None
 
+        if post.is_self:
+            entry["data"] = post.selftext
+        else:
+            entry["data"] = self.processGallery(entry["url"])
+
         entry = {
-            "sub": item.subreddit.display_name,
+            "sub": post.subreddit.display_name,
             "title": title,
             "author": author,
-            "date": item.created_utc,
-            "source": item.domain,
+            "date": post.created_utc,
+            "source": post.domain,
             "url": trueLink(url),
             "url_preview": url_preview,
             "data": None,
         }
         return entry
 
-    def downloadEntry(self, entry, id):
+    def downloadEntry(self, entry: dict, id: str):
         if id in self._posts:
             self._skipped += 1
             self.msg(f"Skipped post {id} from r/{entry['sub']} - already in database")
@@ -103,13 +110,13 @@ class Posts:
             self.save(temp = True)
             self._counter = 0
 
-    def fixCrosspost(self, item):
-        xposts = item.__dict__.get("crosspost_parent_list", None)
+    def fixCrosspost(self, post: praw.models.Submission) -> praw.models.Submission:
+        xposts = post.__dict__.get("crosspost_parent_list", None)
         if xposts is not None and len(xposts) > 0:
-            item = self._account.reddit.submission(id = xposts[-1]["id"])
-        return item
+            post = self._account.reddit.submission(id = xposts[-1]["id"])
+        return post
 
-    def processGallery(self, link):
+    def processGallery(self, link: str) -> list[str]:
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         id = link.strip("/").split("/")[-1]
         urls = []
@@ -138,7 +145,7 @@ class Posts:
             
         return urls
 
-    def save(self, temp = False):
+    def save(self, temp: bool = False):
         self.msg("Saving posts to JSON...")
 
         post_path = Posts.post_path
@@ -161,36 +168,25 @@ class Posts:
         with open(fail_path, "w") as f:
             json.dump(self._failed, f, indent = 4)
 
-    def load(self):
-        if Posts.post_path.is_file():
-            with open(Posts.post_path) as f:
-                good_posts = json.load(f)
+    def loadJSON(self, path: Path) -> list[praw.models.Submission]:
+        if path.is_file():
+            with open(path) as f:
+                posts = json.load(f)
         else:
-            good_posts = {}
+            posts = {}
 
-        if Posts.fail_path.is_file():
-            with open(Posts.fail_path) as f:
-                bad_posts = json.load(f)
-        else:
-            bad_posts = {}
+        path_temp = Path(str(path) + "_temp")
 
-        post_path_temp = Path(str(Posts.post_path) + "_temp")
-        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
+        if (path_temp).is_file():
+            with open(path_temp) as f:
+                posts.update(json.load(f))
 
-        if (post_path_temp).is_file():
-            with open(post_path_temp) as f:
-                good_posts.update(json.load(f))
-
-        if (fail_path_temp).is_file():
-            with open(fail_path_temp) as f:
-                bad_posts.update(json.load(f))
-
-        return (good_posts, bad_posts)
+        return posts
     
-    def loadCSV(self):
-        if not self.csv_path.is_file():
+    def loadCSV(self, path: Path) -> list[str]:
+        if not path.is_file():
             return []
-        with open(self.csv_path, newline = "", encoding = "utf-8") as f:
+        with open(path, newline = "", encoding = "utf-8") as f:
             reader = csv.reader(f)
             ids = [row[0] for row in reader]
             del ids[0]
@@ -199,7 +195,6 @@ class Posts:
             
     def msg(self, msg):
         print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
-
 
 class Account:
     user_agent = "Geddit 1.0 by /u/aeluro1"
@@ -226,20 +221,26 @@ class Account:
     def imgurKey(self):
         return self._imgurKey
 
+
 def main(args):
     account = Account()
-    posts = Posts(account)
-    posts.getItems()
+    posts = Posts(account, args)
+    posts.getPosts()
+    posts.downloadAll()
     posts.save(temp = False)
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Geddit")
     parser.add_argument(
         "--debug", "-d",
         action = "store_true",
-        dest = "debug",
         help = "to activate debug mode, where no files are downloaded",
+    )
+    parser.add_argument(
+        "--csv",
+        action = "store_true",
+        help = "to process saved posts .csv file",
     )
     args = parser.parse_args()
 

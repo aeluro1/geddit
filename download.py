@@ -9,6 +9,7 @@ from yt_dlp import YoutubeDL
 
 from utils import BlankLogger
 
+
 class Downloader:
 
     def __init__(self):

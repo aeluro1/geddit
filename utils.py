@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlsplit, urlunsplit
 
 def trueLink(url):
     try:
