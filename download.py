@@ -26,18 +26,20 @@ class Downloader:
         # Create subreddit folder if non-existent, then set 'dest' to include post file/folder
         dest.mkdir(parents = True, exist_ok = True)
         dest = dest / title
-        
+
         if source in self._sources["vid"]:
             self.getVid(url, dest)
         elif source in self._sources["img"]:
-            if "imgur" in source and "/a/" in url or "reddit" in source and "/gallery/" in url:
+            if "imgur.com/a/" in url or "reddit.com/gallery/" in url:
                 self.getAlbum(entry["data"], dest)
             elif ".gifv" in url:
                 self.getVid(url, dest)
+            elif "/removed." in url:
+                self.getGeneric(entry["url_preview"], dest)
             else:
                 self.getGeneric(url, dest)
         elif source.startswith("self."):
-            self.getGeneric(url, dest)
+            self.getText(entry["data"], dest)
         else:
             response = requests.head(url, timeout = 5, allow_redirects = True)
             mediaType = response.headers["content-type"]
@@ -56,6 +58,11 @@ class Downloader:
             with open(dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
                     f.write(chunk)
+
+    def getText(self, data, dest):
+        dest = Path(str(dest) + ".txt")
+        with open(dest, "w") as f:
+            f.write(data)
         
     def getVid(self, url, dest):
         ydl_opts = {

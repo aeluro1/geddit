@@ -47,34 +47,35 @@ class Posts:
         for post in self._allPosts:
             self.downloadPost(post)
         
-    def downloadPost(self, post: praw.models.Submission):
+    def downloadPost(self, post):
+        if post.id in self._posts:
+            self._skipped += 1
+            self.msg(f"Skipped post {id} from r/{post.subreddit.display_name} - already in database")
+            return
+        
+        if not isinstance(post, praw.models.Submission): # Comment
+            return
+        
         entry = self.processPost(post)
         self.downloadEntry(entry, post.id)
 
     def processPost(self, post: praw.models.Submission) -> dict:
-        print(post)
-        if isinstance(post, praw.models.Submission):
-            post = self.fixCrosspost(post)
-            entry = self.generateEntry(post)
-            
-            return entry
-        else:
-            # Handle comments here
-            pass
+        if not isinstance(post, praw.models.Submission):
+            return {}
+        post = self.fixCrosspost(post)
+        entry = self.generateEntry(post)
+        
+        return entry
 
     def generateEntry(self, post: praw.models.Submission):
         title = post.title.encode("ascii", "ignore").decode()
         author = post.author.name if post.author is not None else None
-        url = post.url_overridden_by_dest if hasattr(post, "url_overridden_by_dest") else post.url
-        try:
-            url_preview = post.preview["posts"][0]["source"]["url"]
-        except:
-            url_preview = None
+        url = post.__dict__.get("url_overridden_by_dest", post.url)
 
-        if post.is_self:
-            entry["data"] = post.selftext
-        else:
-            entry["data"] = self.processGallery(entry["url"])
+        try:
+            url_preview = post.preview["images"][0]["source"]["url"]
+        except:
+            url_preview = ""
 
         entry = {
             "sub": post.subreddit.display_name,
@@ -84,18 +85,20 @@ class Posts:
             "source": post.domain,
             "url": trueLink(url),
             "url_preview": url_preview,
-            "data": None,
+            "data": "",
         }
+        
+        if post.is_self:
+            entry["data"] = post.selftext
+        elif post.__dict__.get("is_gallery", False):
+            entry["data"] = self.processGallery(entry["url"])
+
         return entry
 
     def downloadEntry(self, entry: dict, id: str):
-        if id in self._posts:
-            self._skipped += 1
-            self.msg(f"Skipped post {id} from r/{entry['sub']} - already in database")
-            return
-
         try:
-            Posts.downloader.download(entry, id)
+            if not self._debug:
+                Posts.downloader.download(entry, id)
             self._addedCount += 1
             self._posts[id] = entry
             self.msg(f"Added post {id} from r/{entry['sub']}")
@@ -124,6 +127,9 @@ class Posts:
         if "reddit.com/gallery/" in link:
             post = self._account.reddit.submission(id)
 
+            if post.gallery_data is None:
+                return urls
+
             ord = [i["media_id"] for i in post.gallery_data["items"]]
             
             # Get links to each image in Reddit gallery
@@ -140,8 +146,11 @@ class Posts:
             headers = {
                 "Authorization": f"Client-ID {self._account.imgurKey}"
             }
-            response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
-            urls = [item["link"] for item in response.json()["data"]]
+            try:
+                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+                urls = [item["link"] for item in response.json()["data"]]
+            except:
+                pass
             
         return urls
 
@@ -195,6 +204,7 @@ class Posts:
             
     def msg(self, msg):
         print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
+
 
 class Account:
     user_agent = "Geddit 1.0 by /u/aeluro1"
