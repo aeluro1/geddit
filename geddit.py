@@ -110,7 +110,7 @@ class Posts:
 
         self._counter += 1
         if self._counter == 50:
-            self.save(temp = True)
+            self.saveAll(temp = True)
             self._counter = 0
 
     def fixCrosspost(self, post: praw.models.Submission) -> praw.models.Submission:
@@ -153,29 +153,25 @@ class Posts:
                 pass
             
         return urls
+    
+    def saveAll(self, temp: bool = False):
+        files = [(Posts.post_path, self._posts), (Posts.fail_path, self._failed)]
+        for (data, path) in files:
+            self.save(data, path, temp = temp)
 
-    def save(self, temp: bool = False):
+    def save(self, data: dict, path: Path, temp: bool = False):
         self.msg("Saving posts to JSON...")
 
-        post_path = Posts.post_path
-        fail_path = Posts.fail_path
-        post_path_temp = Path(str(Posts.post_path) + "_temp")
-        fail_path_temp = Path(str(Posts.fail_path) + "_temp")
+        path_temp = Path(str(path) + "_temp")
 
         if temp:
-            post_path = post_path_temp
-            fail_path = fail_path_temp
+            path = path_temp
         else:
-            if post_path_temp.is_file():
-                post_path_temp.unlink()
-            if fail_path_temp.is_file():
-                fail_path_temp.unlink()
+            if path_temp.is_file():
+                path_temp.unlink()
         
-        with open(post_path, "w") as f:
-            json.dump(self._posts, f, indent = 4)
-
-        with open(fail_path, "w") as f:
-            json.dump(self._failed, f, indent = 4)
+        with open(path, "w") as f:
+            json.dump(data, f, indent = 4)
 
     def loadJSON(self, path: Path) -> list[praw.models.Submission]:
         if path.is_file():
@@ -237,7 +233,7 @@ def main(args):
     posts = Posts(account, args)
     posts.getPosts()
     posts.downloadAll()
-    posts.save(temp = False)
+    posts.saveAll(temp = False)
 
 
 if __name__ == "__main__":

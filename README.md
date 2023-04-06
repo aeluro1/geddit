@@ -3,7 +3,7 @@
 This program backs up a Reddit user's saved posts locally. It currently emphasizes saving media content, but the ability to download more saved content types will be implemented in the near future.
 
 ## Features
-* Back up your ***entire saved history (>1000 items)*** from a .csv file
+* Back up your ***entire saved history (>1000 items)*** from a .csv file provided by Reddit
 * Download saved text posts and media content (gifs, videos, albums) from a variety of sources
 * Store a record of all saved and unsaved posts locally, skipping already-saved posts in subsequent program executions
 ## Preparing the config files
@@ -33,9 +33,9 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 3. Start a container from the built image. Replace `$(pwd)` with `%cd%` on Windows.
 
     ```
-    docker container run --network host -it -v $(pwd)/data:/geddit/data geddit
+    docker container run --network host -it -v $(pwd)/data:/geddit/data geddit [--csv]
 
-    docker container run --network host -it -v %cd%/data:/geddit/data geddit
+    docker container run --network host -it -v %cd%/data:/geddit/data geddit [--csv]
     ```
 
 ## Usage (Python)
@@ -50,7 +50,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 4. Run the program.
 
     ```
-    python3 -m geddit [--debug] [--csv]
+    python3 -m geddit [--csv]
     ```
 
 ## To Do
