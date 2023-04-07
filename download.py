@@ -6,6 +6,7 @@ import re
 
 import requests
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
 
 from utils import BlankLogger
 
@@ -28,7 +29,13 @@ class Downloader:
         dest = dest / title
 
         if source in self._sources["vid"]: # Video detected
-            self.getVid(url, dest)
+            try:
+                self.getVid(url, dest)
+            except DownloadError as e:
+                error = e.exc_info[1].code
+                # if not error in [429, 403, 503]:
+                if error in [410, 404]: # Video is deleted, so might as well save the preview if it exists
+                    self.getGeneric(entry["url_preview"], dest)
             return
 
         if source in self._sources["img"]: # Image detected
