@@ -7,7 +7,6 @@ from pathlib import Path
 import requests
 
 from download import Downloader
-from utils import trueLink
 
 
 class Posts:
@@ -48,12 +47,12 @@ class Posts:
             self.downloadPost(post)
         
     def downloadPost(self, post):
+        if not isinstance(post, praw.models.Submission): # Comment
+            return
+        
         if post.id in self._posts:
             self._skipped += 1
             self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
-            return
-        
-        if not isinstance(post, praw.models.Submission): # Comment
             return
         
         entry = self.processPost(post)
@@ -63,37 +62,46 @@ class Posts:
         if not isinstance(post, praw.models.Submission):
             return {}
         post = self.fixCrosspost(post)
-        entry = self.generateEntry(post)
+        entry = self.generateEntry(vars(post))
+        if entry["source"] == "" or entry["url"] == "":
+            ps = self.getPushshiftInfo(post.id)
+            entry = self.generateEntry(ps)
         
         return entry
 
-    def generateEntry(self, post: praw.models.Submission):
-        title = post.title.encode("ascii", "ignore").decode()
-        author = post.author.name if post.author is not None else None
-        url = post.__dict__.get("url_overridden_by_dest", post.url)
+    def generateEntry(self, post: dict) -> dict:
+        title = post.get("title", "").encode("ascii", "ignore").decode()
+        author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
+        url = post.get("url_overridden_by_dest", post["url"])
 
         try:
-            url_preview = post.preview["images"][0]["source"]["url"]
+            url_preview = post["preview"]["images"][0]["source"]["url"]
         except:
             url_preview = ""
 
         entry = {
-            "sub": post.subreddit.display_name,
+            "sub": str(post.get("subreddit", "")),
             "title": title,
             "author": author,
-            "date": post.created_utc,
-            "source": post.domain,
-            "url": trueLink(url),
+            "date": post.get("created_utc", 0.0),
+            "source": post.get("domain", ""),
+            "url": url,
             "url_preview": url_preview,
             "data": "",
         }
         
-        if post.is_self:
-            entry["data"] = post.selftext
-        elif post.__dict__.get("is_gallery", False):
+        if post.get("is_self", False):
+            entry["data"] = post.get("selftext", "")
+        elif post.get("is_gallery", False):
             entry["data"] = self.processGallery(entry["url"])
 
         return entry
+
+    def getPushshiftInfo(self, id: str) -> dict:
+        ps_api = "https://api.pushshift.io/reddit/search/submission"
+        response = requests.get(ps_api, params = {"ids": id})
+        data = response.json()["data"][0]
+        return data
 
     def downloadEntry(self, entry: dict, id: str):
         try:
@@ -127,7 +135,7 @@ class Posts:
         if "reddit.com/gallery/" in link:
             post = self._account.reddit.submission(id)
 
-            if post.gallery_data is None:
+            if post.__dict__.get("gallery_data", None) is None:
                 return urls
 
             ord = [i["media_id"] for i in post.gallery_data["items"]]

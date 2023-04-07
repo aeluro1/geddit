@@ -8,7 +8,7 @@ import requests
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
-from utils import BlankLogger
+from utils import trueLink, BlankLogger
 
 
 class Downloader:
@@ -30,8 +30,11 @@ class Downloader:
         try:
             self.execute(entry, url, dest)
         except:
-
-            self.execute()
+            pass
+        try:
+            self.execute(entry, trueLink(url), dest)
+        except:
+            pass
 
     def execute(self, entry, url, dest):
         source = entry["source"]
@@ -127,7 +130,7 @@ class Downloader:
             print(f"[Downloaded album: {count}/{len(urls)}]")
 
 
-    def tryWayback(self, url):
+    def getWayback(self, url):
         wb_api = "https://web.archive.org/cdx/search/cdx"
         wb_src = "https://web.archive.org/web"
 
@@ -148,6 +151,3 @@ class Downloader:
                 stamp = captures[1][0]
                 url = wb_src + f"/{stamp}/{url}"
                 return url
-
-    def tryPushshift(self):
-        ps_api = "https://api.pushshift.io/reddit/search/submission"
