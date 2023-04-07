@@ -60,19 +60,22 @@ class Posts:
 
     def processPost(self, post: praw.models.Submission) -> dict:
         if not isinstance(post, praw.models.Submission):
-            return {}
+            return None
+        
         post = self.fixCrosspost(post)
         entry = self.generateEntry(vars(post))
-        if entry["source"] == "" or entry["url"] == "":
+        if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]":
             ps = self.getPushshiftInfo(post.id)
-            entry = self.generateEntry(ps)
+            newEntry = self.generateEntry(ps)
+            if newEntry is not None:
+                entry = newEntry
         
         return entry
 
     def generateEntry(self, post: dict) -> dict:
         title = post.get("title", "").encode("ascii", "ignore").decode()
         author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
-        url = post.get("url_overridden_by_dest", post["url"])
+        url = post.get("url_overridden_by_dest", post.get("url", ""))
 
         try:
             url_preview = post["preview"]["images"][0]["source"]["url"]
@@ -99,7 +102,11 @@ class Posts:
 
     def getPushshiftInfo(self, id: str) -> dict:
         ps_api = "https://api.pushshift.io/reddit/search/submission"
-        response = requests.get(ps_api, params = {"ids": id})
+        try:
+            response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
+            response.raise_for_status()
+        except:
+            return None
         data = response.json()["data"][0]
         return data
 
@@ -151,11 +158,13 @@ class Posts:
                 urls.append(url)
         
         elif "imgur.com/a/" in link:
-            headers = {
+            headers = dict(Downloader.headers)
+            headers.update({
                 "Authorization": f"Client-ID {self._account.imgurKey[0]}"
-            }
+            })
+
             try:
-                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 30)
                 response.raise_for_status()
                 urls = [item["link"] for item in response.json()["data"]]
 
@@ -233,6 +242,8 @@ class Account:
             username = self._info["user"],
             password = self._info["pass"]
         )
+        if type(self._imgurKey) is not list:
+            raise ValueError("Update user.json Imgur key format")
 
     @property
     def reddit(self):

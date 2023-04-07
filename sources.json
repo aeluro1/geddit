@@ -5,12 +5,17 @@
         "i.pximg.net",
         "i.redd.it",
         "imgur.com",
-        "reddit.com"
+        "reddit.com",
+        "preview.redd.it"
     ],
     "vid": [
         "youtube.com",
         "v.redd.it",
         "redgifs.com",
         "gfycat.com"
+    ],
+    "invalid": [
+        "/removed.",
+        "/media_violation/"
     ]
 }
