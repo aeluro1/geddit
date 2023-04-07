@@ -36,6 +36,8 @@ class Downloader:
                 # if not error in [429, 403, 503]:
                 if error in [410, 404]: # Video is deleted, so might as well save the preview if it exists
                     self.getGeneric(entry["url_preview"], dest)
+                else:
+                    raise e
             return
 
         if source in self._sources["img"]: # Image detected
