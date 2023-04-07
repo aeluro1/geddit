@@ -6,6 +6,10 @@ import re
 
 import requests
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadError
+
+from utils import BlankLogger
+
 
 class Downloader:
 
@@ -13,46 +17,77 @@ class Downloader:
         with open("sources.json") as f:
             self._sources = json.load(f)
 
-    def download(self, entry, id):
+    def download(self, entry, prefix):
         dest = Path("data") / entry["sub"]
         url = entry["url"]
         source = entry["source"]
         title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])
-        title = (id + " - " + title)[:250]
+        title = (prefix + " - " + title)[:250]
 
         # Create subreddit folder if non-existent, then set 'dest' to include post file/folder
         dest.mkdir(parents = True, exist_ok = True)
         dest = dest / title
 
-        if source in self._sources["vid"]:
-            self.getVid(url, dest)
-        elif source in self._sources["img"]:
-            if "imgur" in source and "/a/" in url or "reddit" in source and "/gallery/" in url:
-                self.getAlbum(entry["data"], dest)
-            elif ".gifv" in url:
+        if source in self._sources["vid"]: # Video detected
+            try:
                 self.getVid(url, dest)
-            else:
-                self.getGeneric(url, dest)
-        elif source.startswith("self."):
-            self.getGeneric(url, dest)
-        else:
+            except DownloadError as e:
+                error = e.exc_info[1].code
+                # if not error in [429, 403, 503]:
+                if error in [410, 404]: # Video is deleted, so might as well save the preview if it exists
+                    self.getGeneric(entry["url_preview"], dest)
+                else:
+                    raise e
+            return
+
+        if source in self._sources["img"]: # Image detected
+            if "imgur.com/a/" in url or "reddit.com/gallery/" in url: # Fetch reddit gallery
+                self.getAlbum(entry["data"], dest)
+            elif ".gifv" in url: # Edge case for gif video
+                self.getVid(url, dest)
+            elif "/removed." in url: # Edge case where Imgur image is deleted but Reddit cached it
+                self.getGeneric(entry["url_preview"], dest)
+            else: # Known image
+                try:
+                    self.getGeneric(url, dest)
+                except:
+                    self.getGeneric(entry["url_preview"], dest)
+            return
+
+        if source.startswith("self."): # Text post
+            self.getText(entry["data"], dest)
+            return
+
+        try: # Unknown post format - see if media type is encoded in HTTP response
             response = requests.head(url, timeout = 5, allow_redirects = True)
             mediaType = response.headers["content-type"]
             if "image" in mediaType.lower():
                 self.getGeneric(url, dest)
             elif "video" in mediaType.lower():
                 self.getVid(url, dest)
-            else:
-                raise Exception(f"Unkown domain for post '{title}': {source}")
+            return
+        except:
+            pass
+        
+        if entry["url_preview"] != "": # Unknown post format, but it has a downloadable preview
+            self.getGeneric(entry["url_preview"], dest)
+            return
+
+        raise Exception(f"Unkown domain for post '{title}': {source}")
 
     def getGeneric(self, url, dest):
-        with requests.get(url, stream = True, timeout = 5, allow_redirects = True) as r:
+        with requests.get(url, stream = True, timeout = 5) as r:
             r.raise_for_status()
             ext = guess_extension(r.headers["content-type"].split(";")[0].strip())
             dest = Path(str(dest) + ext)
             with open(dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
                     f.write(chunk)
+
+    def getText(self, data, dest):
+        dest = Path(str(dest) + ".md")
+        with open(dest, "w", encoding = "utf-8") as f:
+            f.write(data)
         
     def getVid(self, url, dest):
         ydl_opts = {
@@ -63,7 +98,7 @@ class Downloader:
                     #     "key": "FFmpegVideoConvertor",
                     #     "preferedformat": "mp4"
                     # }],
-                    "logger": Logger()
+                    "logger": BlankLogger()
                 }
         
         with YoutubeDL(ydl_opts) as ydl:
@@ -77,13 +112,3 @@ class Downloader:
             self.getGeneric(url, dest / str(count))
             count += 1
             print(f"[Downloaded album: {count}/{len(urls)}]")
-
-class Logger:
-    def debug(self, msg):
-        pass
-    def error(self, msg):
-        pass
-    def warning(self, msg):
-        pass
-    def error(self, msg):
-        pass

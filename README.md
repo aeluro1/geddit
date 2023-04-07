@@ -2,9 +2,10 @@
 ---
 This program backs up a Reddit user's saved posts locally. It currently emphasizes saving media content, but the ability to download more saved content types will be implemented in the near future.
 
-**It is now also able to download the user's <ins>entire saved post list (> 1000 items)</ins>. See below for details. Keep in mind that multiprocessing has not yet been implemented, so it will be somewhat inefficient when downloading many files, especially large Imgur albums.**
-
-Posts that have already been downloaded will be skipped in subsequent executions of the program. A record of saved and unsaved posts will be serialized and stored in the data directory as JSON files.
+## Features
+* Back up your ***entire saved history (>1000 items)*** from a .csv file provided by Reddit
+* Download saved text posts and media content (gifs, videos, albums) from a variety of sources
+* Store a record of all saved and unsaved posts locally, skipping already-saved posts in subsequent program executions
 
 ## Preparing the config files
 1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret.
@@ -20,6 +21,7 @@ Posts that have already been downloaded will be skipped in subsequent executions
 ## Downloading all saved posts
 1. [Request your Reddit data](https://www.reddit.com/settings/data-request) as a zip file.
 2. Move the `saved_posts.csv` within the zip file into the home directory of the repository.
+3. When starting the Docker environment or running the Python program, append `--csv` to the command.
 
 ## Usage (Docker)
 1. Clone the repository.
@@ -32,9 +34,9 @@ Posts that have already been downloaded will be skipped in subsequent executions
 3. Start a container from the built image. Replace `$(pwd)` with `%cd%` on Windows.
 
     ```
-    docker container run --network host -it -v $(pwd)/data:/geddit/data geddit
+    docker container run --network host -it -v $(pwd)/data:/geddit/data geddit [--csv]
 
-    docker container run --network host -it -v %cd%/data:/geddit/data geddit
+    docker container run --network host -it -v %cd%/data:/geddit/data geddit [--csv]
     ```
 
 ## Usage (Python)
@@ -49,13 +51,11 @@ Posts that have already been downloaded will be skipped in subsequent executions
 4. Run the program.
 
     ```
-    python3 -m main.py
+    python3 -m geddit [--csv]
     ```
 
 ## To Do
-- [ ] Implement post and comment downloading
-- [ ] Implement multithreading
-- [ ] Implement progress bar with tqdm
-- [ ] Implement bloom filter to determine whether post is already saved, improve seek time
-
-- [ ] Investigate why Docker environment forces Requests to use IPv6 by default, leading to some weird hanging issues
+- [x] Implement post ~~and comment~~ downloading
+- [ ] Add multithreading
+- [ ] Add progress bar with tqdm
+- [ ] Add bloom filter to determine whether post is already saved, improve seek time
