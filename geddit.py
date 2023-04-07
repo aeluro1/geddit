@@ -144,11 +144,15 @@ class Posts:
         
         elif "imgur.com/a/" in link:
             headers = {
-                "Authorization": f"Client-ID {self._account.imgurKey}"
+                "Authorization": f"Client-ID {self._account.imgurKey[0]}"
             }
             try:
                 response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+                response.raise_for_status()
                 urls = [item["link"] for item in response.json()["data"]]
+
+                if int(response.headers["x-ratelimit-clientremaining"]) < 1000:
+                    self._account.imgurKey.pop(0)
             except:
                 pass
             

@@ -20,7 +20,6 @@ class Downloader:
     def download(self, entry, prefix):
         dest = Path("data") / entry["sub"]
         url = entry["url"]
-        source = entry["source"]
         title = re.sub(r"[\\/*?:.\"<>|]", "", entry["title"])
         title = (prefix + " - " + title)[:250]
 
@@ -28,16 +27,26 @@ class Downloader:
         dest.mkdir(parents = True, exist_ok = True)
         dest = dest / title
 
+        try:
+            self.execute(entry, url, dest)
+        except:
+
+            self.execute()
+
+    def execute(self, entry, url, dest):
+        source = entry["source"]
+
         if source in self._sources["vid"]: # Video detected
             try:
                 self.getVid(url, dest)
             except DownloadError as e:
-                error = e.exc_info[1].code
-                # if not error in [429, 403, 503]:
-                if error in [410, 404]: # Video is deleted, so might as well save the preview if it exists
-                    self.getGeneric(entry["url_preview"], dest)
-                else:
-                    raise e
+                # error = e.exc_info[1].code
+                # # if not error in [429, 403, 503]:
+                # if error in [410, 404]: # Video is deleted, so might as well save the preview if it exists
+                #     self.getGeneric(entry["url_preview"], dest)
+                # else:
+                #     raise e
+                raise e
             return
 
         if source in self._sources["img"]: # Image detected
@@ -60,20 +69,22 @@ class Downloader:
 
         try: # Unknown post format - see if media type is encoded in HTTP response
             response = requests.head(url, timeout = 5, allow_redirects = True)
+            response.raise_for_status()
             mediaType = response.headers["content-type"]
             if "image" in mediaType.lower():
                 self.getGeneric(url, dest)
+                return
             elif "video" in mediaType.lower():
                 self.getVid(url, dest)
-            return
+                return
         except:
             pass
-        
+
         if entry["url_preview"] != "": # Unknown post format, but it has a downloadable preview
             self.getGeneric(entry["url_preview"], dest)
             return
-
-        raise Exception(f"Unkown domain for post '{title}': {source}")
+        
+        raise Exception(f"Unkown domain for post '{dest.name}': {source}")
 
     def getGeneric(self, url, dest):
         with requests.get(url, stream = True, timeout = 5) as r:
@@ -108,7 +119,35 @@ class Downloader:
         dest.mkdir(parents = True, exist_ok = True)
         count = 0
 
+        if len(urls) == 0:
+            raise Exception("No images in album found")
         for url in urls:
             self.getGeneric(url, dest / str(count))
             count += 1
             print(f"[Downloaded album: {count}/{len(urls)}]")
+
+
+    def tryWayback(self, url):
+        wb_api = "https://web.archive.org/cdx/search/cdx"
+        wb_src = "https://web.archive.org/web"
+
+        if url != "":
+            params = {
+                "url": url,
+                "output": "json",
+                "gzip": False,
+                "fl": ["timestamp"],
+                "filter": "statuscode:200",
+                "collapse":"digest"
+            }
+            r = requests.get(wb_api, params = params)
+            r.raise_for_status()
+            captures = r.json()
+
+            if len(captures) != 0:
+                stamp = captures[1][0]
+                url = wb_src + f"/{stamp}/{url}"
+                return url
+
+    def tryPushshift(self):
+        ps_api = "https://api.pushshift.io/reddit/search/submission"
