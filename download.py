@@ -145,7 +145,7 @@ class Downloader:
 
         ydl_opts = {
                     "quiet": True,
-                    "no-check-certificate": True,
+                    "nocheckcertificate": True,
                     "ignoreerrors": True,
                     "outtmpl": f"{dest}.%(ext)s",
                     # "postprocessors": [{
@@ -157,6 +157,9 @@ class Downloader:
         
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+
+        if not any([file for file in dest.parent.glob("{dest.name}.*")]):
+            raise RuntimeError("Failed to download video")
 
     def getAlbum(self, urls, dest):
         dest.mkdir(parents = True, exist_ok = True)

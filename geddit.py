@@ -250,7 +250,7 @@ class Posts:
 
 
 class Account:
-    user_agent = "Geddit 1.0 by /u/aeluro1"
+    user_agent = "Geddit Saved Posts Backup Utiity (by /u/aeluro1)"
 
     def __init__(self):
         with open("user.json") as f:
