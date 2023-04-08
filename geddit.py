@@ -154,13 +154,21 @@ class Posts:
             post = self._account.reddit.submission(id = id)
 
             if not hasattr(post, "gallery_data") or post.gallery_data is None:
-                return urls
+                try:
+                    ps = self.getPushshiftInfo(id)
+                    gallery_data = ps["gallery_data"]
+                    media_metadata = ps["media_metadata"]
+                except:
+                    return urls
+            else:
+                gallery_data = post.gallery_data
+                media_metadata = post.media_metadata
 
-            ord = [i["media_id"] for i in post.gallery_data["items"]]
+            ord = [i["media_id"] for i in gallery_data["items"]]
             
             # Get links to each image in Reddit gallery
             for key in ord:
-                img = post.media_metadata[key]
+                img = media_metadata[key]
                 if len(img["p"]) > 0:
                     url = img["p"][-1]["u"]
                 else:
@@ -189,14 +197,15 @@ class Posts:
     
     def saveAll(self, temp: bool = False):
         files = [(self._posts, Posts.post_path), (self._failed, Posts.fail_path)]
+
+        self.msg(f"Saving items to JSON...")
+        
         for (data, path) in files:
             self.save(data, path, temp = temp)
 
     def save(self, data: dict, path: Path, temp: bool = False):
         if self._debug:
             path = Path(str(path) + "_debug")
-
-        self.msg(f"Saving item to JSON...")
 
         path_temp = Path(str(path) + "_temp")
 
