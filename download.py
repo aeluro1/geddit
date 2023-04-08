@@ -7,7 +7,6 @@ import re
 
 import requests
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import DownloadError
 
 from utils import trueLink, BlankLogger
 
@@ -147,6 +146,7 @@ class Downloader:
         ydl_opts = {
                     "quiet": True,
                     "no-check-certificate": True,
+                    "ignoreerrors": True,
                     "outtmpl": f"{dest}.%(ext)s",
                     # "postprocessors": [{
                     #     "key": "FFmpegVideoConvertor",
