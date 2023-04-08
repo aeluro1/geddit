@@ -108,8 +108,7 @@ class Posts:
         return entry
 
     def getPushshiftInfo(self, id: str) -> dict:
-        if self._verbose:
-            print(f"Getting pushshift data for post {id}")
+        print(f"[Calling pushshift for post {id}]")
         ps_api = "https://api.pushshift.io/reddit/search/submission"
         try:
             response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
