@@ -158,6 +158,8 @@ class Posts:
                     ps = self.getPushshiftInfo(id)
                     gallery_data = ps["gallery_data"]
                     media_metadata = ps["media_metadata"]
+                    if gallery_data is None:
+                        raise ValueError("Unable to extract album data via pushshift and praw")
                 except:
                     return urls
             else:
