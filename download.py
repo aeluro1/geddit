@@ -167,7 +167,7 @@ class Downloader:
         for url in urls:
             self.getGeneric(url, dest / str(count))
             count += 1
-            print(f"[Downloaded album: {count}/{len(urls)}]")
+            print(f"[Downloaded album for {dest.name}: {count}/{len(urls)}]")
 
 
     def getWayback(self, url):

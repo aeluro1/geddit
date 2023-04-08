@@ -5,6 +5,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 ## Features
 * Back up your ***entire saved history (>1000 items)*** from a .csv file provided by Reddit
 * Download saved text posts and media content (gifs, videos, albums) from a variety of sources
+* Extract deleted media using pushshift, cached reddit previews, and the wayback machine
 * Store a record of all saved and unsaved posts locally, skipping already-saved posts in subsequent program executions
 
 ## Preparing the config files
@@ -16,6 +17,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
     - Set the name to `geddit`
     - Set `Anonymous usage without user authorization` as the authorization type
     - Set the email and description fields accordingly
+    - Repeat these steps to obtain several more API keys to circumvent Imgur's rate limit (12500 requests per API)
 3. Rename the `user_template.json` file to `user.json`, and fill in its fields with their corresponding API information.
 
 ## Downloading all saved posts
