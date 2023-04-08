@@ -7,7 +7,6 @@ from pathlib import Path
 import requests
 
 from download import Downloader
-from utils import trueLink
 
 
 class Posts:
@@ -34,6 +33,10 @@ class Posts:
 
         self._debug = args.debug
         self._csv = args.csv
+        self._verbose = args.verbose
+        Posts.downloader.verbose = args.verbose
+
+        self.msg("Initialized!")
 
     def getPosts(self):
         reddit = self._account.reddit
@@ -48,12 +51,12 @@ class Posts:
             self.downloadPost(post)
         
     def downloadPost(self, post):
-        if post.id in self._posts:
-            self._skipped += 1
-            self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
+        if not isinstance(post, praw.models.Submission): # Comment
             return
         
-        if not isinstance(post, praw.models.Submission): # Comment
+        if post.id in self._posts:
+            self._skipped += 1
+            self.msg(f"Skipped post {post.id} from r/{self._posts[post.id]['sub']} - already in database")
             return
         
         entry = self.processPost(post)
@@ -61,39 +64,59 @@ class Posts:
 
     def processPost(self, post: praw.models.Submission) -> dict:
         if not isinstance(post, praw.models.Submission):
-            return {}
+            return None
+        
         post = self.fixCrosspost(post)
         entry = self.generateEntry(post)
+        if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]" or entry["data"] == []:
+            ps = self.getPushshiftInfo(post.id)
+            entry = self.generateEntry(ps)
         
         return entry
 
-    def generateEntry(self, post: praw.models.Submission):
-        title = post.title.encode("ascii", "ignore").decode()
-        author = post.author.name if post.author is not None else None
-        url = post.__dict__.get("url_overridden_by_dest", post.url)
+    def generateEntry(self, post: dict | praw.models.Submission) -> dict:
+        if isinstance(post, praw.models.Submission): # Necessary to load lazy objects
+            title = post.title if hasattr(post, "title") else ""
+            post = vars(post)
+        else: # If post is already dictionary, i.e. from pushshift
+            title = post.get("title", "")
+        title = title.encode("ascii", "ignore").decode()
+        author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
+        url = post.get("url_overridden_by_dest", post.get("url", ""))
 
         try:
-            url_preview = post.preview["images"][0]["source"]["url"]
+            url_preview = post["preview"]["images"][0]["source"]["url"]
         except:
             url_preview = ""
 
         entry = {
-            "sub": post.subreddit.display_name,
+            "sub": str(post.get("subreddit", "")),
             "title": title,
             "author": author,
-            "date": post.created_utc,
-            "source": post.domain,
-            "url": trueLink(url),
+            "date": post.get("created_utc", 0.0),
+            "source": post.get("domain", ""),
+            "url": url,
             "url_preview": url_preview,
             "data": "",
         }
         
-        if post.is_self:
-            entry["data"] = post.selftext
-        elif post.__dict__.get("is_gallery", False):
-            entry["data"] = self.processGallery(entry["url"])
+        if post.get("is_self", False):
+            entry["data"] = post.get("selftext", "")
+        elif "reddit.com/gallery/" in url or "imgur.com/a/" in url:
+            entry["data"] = self.processGallery(url)
 
         return entry
+
+    def getPushshiftInfo(self, id: str) -> dict:
+        print(f"[Calling pushshift for post {id}]")
+        ps_api = "https://api.pushshift.io/reddit/search/submission"
+        try:
+            response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
+            response.raise_for_status()
+            data = response.json()["data"][0]
+            return data
+        except:
+            return {}
 
     def downloadEntry(self, entry: dict, id: str):
         try:
@@ -114,27 +137,40 @@ class Posts:
             self._counter = 0
 
     def fixCrosspost(self, post: praw.models.Submission) -> praw.models.Submission:
-        xposts = post.__dict__.get("crosspost_parent_list", None)
+        xposts = post.crosspost_parent_list if hasattr(post, "crosspost_parent_list") else None
         if xposts is not None and len(xposts) > 0:
             post = self._account.reddit.submission(id = xposts[-1]["id"])
         return post
 
     def processGallery(self, link: str) -> list[str]:
+        if self._verbose:
+            print(f"Processing gallery at {link}")
+
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         id = link.strip("/").split("/")[-1]
         urls = []
         
         if "reddit.com/gallery/" in link:
-            post = self._account.reddit.submission(id)
+            post = self._account.reddit.submission(id = id)
 
-            if post.gallery_data is None:
-                return urls
+            if not hasattr(post, "gallery_data") or post.gallery_data is None:
+                try:
+                    ps = self.getPushshiftInfo(id)
+                    gallery_data = ps["gallery_data"]
+                    media_metadata = ps["media_metadata"]
+                    if gallery_data is None:
+                        raise ValueError("Unable to extract album data via pushshift and praw")
+                except:
+                    return urls
+            else:
+                gallery_data = post.gallery_data
+                media_metadata = post.media_metadata
 
-            ord = [i["media_id"] for i in post.gallery_data["items"]]
+            ord = [i["media_id"] for i in gallery_data["items"]]
             
             # Get links to each image in Reddit gallery
             for key in ord:
-                img = post.media_metadata[key]
+                img = media_metadata[key]
                 if len(img["p"]) > 0:
                     url = img["p"][-1]["u"]
                 else:
@@ -143,27 +179,35 @@ class Posts:
                 urls.append(url)
         
         elif "imgur.com/a/" in link:
-            headers = {
-                "Authorization": f"Client-ID {self._account.imgurKey}"
-            }
+            headers = dict(Downloader.headers)
+            headers.update({
+                "Authorization": f"Client-ID {self._account.imgurKey[0]}"
+            })
+
             try:
-                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 5)
+                response = requests.get(f"https://api.imgur.com/3/album/{id}/images", headers = headers, timeout = 30)
+                response.raise_for_status()
                 urls = [item["link"] for item in response.json()["data"]]
-            except:
-                pass
+
+                if int(response.headers["x-ratelimit-clientremaining"]) < 1000:
+                    self._account.imgurKey.pop(0)
+            except Exception as e:
+                if self._verbose:
+                    print(e)
             
         return urls
     
     def saveAll(self, temp: bool = False):
         files = [(self._posts, Posts.post_path), (self._failed, Posts.fail_path)]
+
+        self.msg(f"Saving items to JSON...")
+        
         for (data, path) in files:
             self.save(data, path, temp = temp)
 
     def save(self, data: dict, path: Path, temp: bool = False):
         if self._debug:
             path = Path(str(path) + "_debug")
-
-        self.msg(f"Saving item to JSON...")
 
         path_temp = Path(str(path) + "_temp")
 
@@ -221,6 +265,8 @@ class Account:
             username = self._info["user"],
             password = self._info["pass"]
         )
+        if not isinstance(self._imgurKey, list):
+            raise ValueError("Update user.json Imgur key format")
 
     @property
     def reddit(self):
@@ -250,6 +296,11 @@ if __name__ == "__main__":
         "--csv",
         action = "store_true",
         help = "to process saved posts .csv file",
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        action = "store_true",
+        help = "to print all log statements",
     )
     args = parser.parse_args()
 
