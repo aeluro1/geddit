@@ -16,7 +16,7 @@ class Posts:
 
     downloader = Downloader()
 
-    def __init__(self, account: "Account", debug: bool, csv: bool, verbose: bool):
+    def __init__(self, account: "Account", debug: bool = False, csv: bool = False, verbose: bool = False):
         self._posts = self.loadJSON(Posts.post_path)
         self._failed  = {}
 
@@ -62,25 +62,21 @@ class Posts:
         entry = self.processPost(post)
         self.downloadEntry(entry, post.id)
 
-    def processPost(self, post: praw.models.Submission) -> dict:
-        if not isinstance(post, praw.models.Submission):
+    def processPost(self, prawPost: praw.models.Submission) -> dict:
+        if not isinstance(prawPost, praw.models.Submission):
             return None
         
+        post = self.postToDict(prawPost)
         post = self.fixCrosspost(post)
         entry = self.generateEntry(post)
         if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]" or entry["data"] == []:
-            ps = self.getPushshiftInfo(post.id)
+            ps = self.getPushshiftPost(post["id"])
             entry = self.generateEntry(ps)
         
         return entry
 
-    def generateEntry(self, post: dict | praw.models.Submission) -> dict:
-        if isinstance(post, praw.models.Submission): # Necessary to load lazy objects
-            title = post.title if hasattr(post, "title") else ""
-            post = vars(post)
-        else: # If post is already dictionary, i.e. from pushshift
-            title = post.get("title", "")
-        title = title.encode("ascii", "ignore").decode()
+    def generateEntry(self, post: dict) -> dict:
+        title = post.get("title", "").encode("ascii", "ignore").decode()
         author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
         url = post.get("url_overridden_by_dest", post.get("url", ""))
 
@@ -105,9 +101,12 @@ class Posts:
         elif "reddit.com/gallery/" in url or "imgur.com/a/" in url:
             entry["data"] = self.processGallery(url)
 
+        if "imgur" in url and "/a/" not in url and Path(url).suffix == "":
+            entry["url"] += ".png"
+
         return entry
 
-    def getPushshiftInfo(self, id: str) -> dict:
+    def getPushshiftPost(self, id: str) -> dict:
         print(f"[Calling pushshift for post {id}]")
         ps_api = "https://api.pushshift.io/reddit/search/submission"
         try:
@@ -136,10 +135,19 @@ class Posts:
             self.saveAll(temp = True)
             self._counter = 0
 
-    def fixCrosspost(self, post: praw.models.Submission) -> praw.models.Submission:
-        xposts = post.crosspost_parent_list if hasattr(post, "crosspost_parent_list") else None
+    def postToDict(self, prawPost):
+        try:
+            if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
+                post = vars(prawPost)
+        except:
+            post = self.getPushshiftPost(prawPost.id)
+        return post
+
+    def fixCrosspost(self, post: dict) -> dict:
+        xposts = post.get("crosspost_parent_list", None)
         if xposts is not None and len(xposts) > 0:
-            post = self._account.reddit.submission(id = xposts[-1]["id"])
+            prawPost = self._account.reddit.submission(id = xposts[-1]["id"])
+            post = self.postToDict(prawPost)
         return post
 
     def processGallery(self, link: str) -> list[str]:
@@ -151,32 +159,31 @@ class Posts:
         urls = []
         
         if "reddit.com/gallery/" in link:
-            post = self._account.reddit.submission(id = id)
+            prawPost = self._account.reddit.submission(id = id)
+            post = self.postToDict(prawPost)
 
-            if not hasattr(post, "gallery_data") or post.gallery_data is None:
+            if post.get("gallery_data", None) is None:
                 try:
-                    ps = self.getPushshiftInfo(id)
-                    gallery_data = ps["gallery_data"]
-                    media_metadata = ps["media_metadata"]
-                    if gallery_data is None:
+                    post = self.getPushshiftPost(id)
+                    if post.get("gallery_data", None) is None:
                         raise ValueError("Unable to extract album data via pushshift and praw")
                 except:
                     return urls
-            else:
-                gallery_data = post.gallery_data
-                media_metadata = post.media_metadata
 
-            ord = [i["media_id"] for i in gallery_data["items"]]
-            
             # Get links to each image in Reddit gallery
-            for key in ord:
-                img = media_metadata[key]
-                if len(img["p"]) > 0:
-                    url = img["p"][-1]["u"]
-                else:
-                    url = img["s"]["u"]
-                url = url.split("?")[0].replace("preview", "i")
-                urls.append(url)
+            # Try block to account for possibility of some posts media data not containing "p", "u", etc. elements
+            try:
+                ord = [i["media_id"] for i in post["gallery_data"]["items"]]
+                for key in ord:
+                    img = post["media_metadata"][key]
+                    if len(img["p"]) > 0:
+                        url = img["p"][-1]["u"]
+                    else:
+                        url = img["s"]["u"]
+                    url = url.split("?")[0].replace("preview", "i")
+                    urls.append(url)
+            except:
+                return urls
         
         elif "imgur.com/a/" in link:
             headers = dict(Downloader.headers)
