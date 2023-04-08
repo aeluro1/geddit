@@ -1,6 +1,6 @@
 .vscode
 __pycache__
-/dev
+# /dev
 /user.json
 /data
 saved_posts.csv

@@ -1,0 +1,3 @@
+https://stackoverflow.com/questions/54858979/how-to-use-multiprocessing-with-requests-module
+https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool
+https://stackoverflow.com/questions/70317903/how-to-store-all-the-output-before-multiprocessing-finish
