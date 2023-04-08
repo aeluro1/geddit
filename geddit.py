@@ -33,6 +33,10 @@ class Posts:
 
         self._debug = args.debug
         self._csv = args.csv
+        self._verbose = args.verbose
+        Posts.downloader.verbose = args.verbose
+
+        self.msg("Initialized!")
 
     def getPosts(self):
         reddit = self._account.reddit
@@ -52,7 +56,7 @@ class Posts:
         
         if post.id in self._posts:
             self._skipped += 1
-            self.msg(f"Skipped post {post.id} from r/{post.subreddit.display_name} - already in database")
+            self.msg(f"Skipped post {post.id} from r/{self._posts[post.id]['sub']} - already in database")
             return
         
         entry = self.processPost(post)
@@ -63,17 +67,20 @@ class Posts:
             return None
         
         post = self.fixCrosspost(post)
-        entry = self.generateEntry(vars(post))
-        if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]":
+        entry = self.generateEntry(post)
+        if any([entry["source"] == "", entry["url"] == "", entry["data"] == "[removed]"]):
             ps = self.getPushshiftInfo(post.id)
-            newEntry = self.generateEntry(ps)
-            if newEntry is not None:
-                entry = newEntry
+            entry = self.generateEntry(ps)
         
         return entry
 
-    def generateEntry(self, post: dict) -> dict:
-        title = post.get("title", "").encode("ascii", "ignore").decode()
+    def generateEntry(self, post: dict | praw.models.Submission) -> dict:
+        if isinstance(post, praw.models.Submission): # Necessary to load lazy objects
+            title = post.title if hasattr(post, "title") else ""
+            post = vars(post)
+        else: # If post is already dictionary, i.e. from pushshift
+            title = post.get("title", "")
+        title = title.encode("ascii", "ignore").decode()
         author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
         url = post.get("url_overridden_by_dest", post.get("url", ""))
 
@@ -95,20 +102,22 @@ class Posts:
         
         if post.get("is_self", False):
             entry["data"] = post.get("selftext", "")
-        elif post.get("is_gallery", False):
-            entry["data"] = self.processGallery(entry["url"])
+        elif "reddit.com/gallery/" in url or "imgur.com/a/" in url:
+            entry["data"] = self.processGallery(url)
 
         return entry
 
     def getPushshiftInfo(self, id: str) -> dict:
+        if self._verbose:
+            print(f"Getting pushshift data for post {id}")
         ps_api = "https://api.pushshift.io/reddit/search/submission"
         try:
             response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
             response.raise_for_status()
+            data = response.json()["data"][0]
+            return data
         except:
-            return None
-        data = response.json()["data"][0]
-        return data
+            return {}
 
     def downloadEntry(self, entry: dict, id: str):
         try:
@@ -129,20 +138,23 @@ class Posts:
             self._counter = 0
 
     def fixCrosspost(self, post: praw.models.Submission) -> praw.models.Submission:
-        xposts = post.__dict__.get("crosspost_parent_list", None)
+        xposts = post.crosspost_parent_list if hasattr(post, "crosspost_parent_list") else None
         if xposts is not None and len(xposts) > 0:
             post = self._account.reddit.submission(id = xposts[-1]["id"])
         return post
 
     def processGallery(self, link: str) -> list[str]:
+        if self._verbose:
+            print(f"Processing gallery at {link}")
+
         # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         id = link.strip("/").split("/")[-1]
         urls = []
         
         if "reddit.com/gallery/" in link:
-            post = self._account.reddit.submission(id)
+            post = self._account.reddit.submission(id = id)
 
-            if post.__dict__.get("gallery_data", None) is None:
+            if not hasattr(post, "gallery_data") or post.gallery_data is None:
                 return urls
 
             ord = [i["media_id"] for i in post.gallery_data["items"]]
@@ -170,8 +182,9 @@ class Posts:
 
                 if int(response.headers["x-ratelimit-clientremaining"]) < 1000:
                     self._account.imgurKey.pop(0)
-            except:
-                pass
+            except Exception as e:
+                if self._verbose:
+                    print(e)
             
         return urls
     
@@ -242,7 +255,7 @@ class Account:
             username = self._info["user"],
             password = self._info["pass"]
         )
-        if type(self._imgurKey) is not list:
+        if not isinstance(self._imgurKey, list):
             raise ValueError("Update user.json Imgur key format")
 
     @property
@@ -273,6 +286,11 @@ if __name__ == "__main__":
         "--csv",
         action = "store_true",
         help = "to process saved posts .csv file",
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        action = "store_true",
+        help = "to print all log statements",
     )
     args = parser.parse_args()
 
