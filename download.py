@@ -63,7 +63,7 @@ class Downloader:
         # Finally, locate historical URLs and attempt to download them until there are no more links
         try:
             if isinstance(entry["data"], list):
-                raise RuntimeError("Album unavailable - wayback not supported yet")
+                raise RuntimeError("Wayback implementation does not support albums yet")
             
             wb_urls = self.getWayback(url)
             count = 1
