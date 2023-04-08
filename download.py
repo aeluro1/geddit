@@ -158,7 +158,7 @@ class Downloader:
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        if not any([file for file in dest.parent.glob(f"{dest.name}.*")]):
+        if not any([file.name.startswith(dest.name) for file in dest.parent.iterdir()]):
             raise RuntimeError("Failed to download video")
 
     def getAlbum(self, urls, dest):
