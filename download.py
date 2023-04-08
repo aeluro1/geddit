@@ -61,26 +61,34 @@ class Downloader:
             if self._verbose: print(e)
         
         # Finally, locate historical URLs and attempt to download them until there are no more links
-        try:
-            if isinstance(entry["data"], list):
-                raise RuntimeError("Wayback implementation does not support albums yet")
-            
-            wb_urls = self.getWayback(url)
-            count = 1
-            for wb in wb_urls:
-                try:
-                    print(f"[Attempting wayback machine download: {count}/{len(wb_urls)}]")
-                    self.execute(entry, wb, dest)
-                    if self._verbose: print(f"Successfully downloaded with wayback URL")
-                    return
-                except:
-                    count += 1
-                    continue
-        except Exception as e:
-            if self._verbose: print(e)
+        if isinstance(entry["data"], list): # Albums aren't supported with wayback yet
+            raise exc
+        
+        wbList = [entry["url"], entry["url_preview"]]
+        for wb in wbList:
+            try:
+                self.executeWayback(entry, wb, dest)
+                return
+            except Exception as e:
+                if self._verbose: print(e)
 
         raise exc
+    
+    def executeWayback(self, entry, url, dest):
+        wb_urls = self.getWayback(url)
+        count = 1
+        for wb in wb_urls:
+            try:
+                print(f"[Attempting wayback machine download: {count}/{len(wb_urls)}]")
+                self.execute(entry, wb, dest)
+                if self._verbose: print(f"Successfully downloaded with wayback URL")
+                return
+            except:
+                count += 1
+                continue
 
+        raise RuntimeError("Failed to download URL with wayback")
+    
     def execute(self, entry, url, dest):
         source = entry["source"]
 
@@ -186,6 +194,7 @@ class Downloader:
             "gzip": False,
             "fl": "timestamp,statuscode",
             "collapse": "digest",
+            "matchType": "prefix"
         }
         response = requests.get(wb_api, headers = Downloader.headers, params = params, timeout = 30)
         if response.status_code == 429:

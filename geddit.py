@@ -83,7 +83,10 @@ class Posts:
         try:
             url_preview = post["preview"]["images"][0]["source"]["url"]
         except:
-            url_preview = ""
+            if "i.redd.it" in url:
+                url_preview = url.replace("i.redd.it", "preview.redd.it")
+            else:
+                url_preview = ""
 
         entry = {
             "sub": str(post.get("subreddit", "")),
