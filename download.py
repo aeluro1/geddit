@@ -7,7 +7,6 @@ import re
 
 import requests
 from yt_dlp import YoutubeDL
-from yt_dlp.utils import DownloadError
 
 from utils import trueLink, BlankLogger
 
@@ -146,7 +145,8 @@ class Downloader:
 
         ydl_opts = {
                     "quiet": True,
-                    "no-check-certificate": True,
+                    "nocheckcertificate": True,
+                    "ignoreerrors": True,
                     "outtmpl": f"{dest}.%(ext)s",
                     # "postprocessors": [{
                     #     "key": "FFmpegVideoConvertor",
@@ -157,6 +157,9 @@ class Downloader:
         
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+
+        if not any([file for file in dest.parent.glob(f"{dest.name}.*")]):
+            raise RuntimeError("Failed to download video")
 
     def getAlbum(self, urls, dest):
         dest.mkdir(parents = True, exist_ok = True)

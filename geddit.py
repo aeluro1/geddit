@@ -16,7 +16,7 @@ class Posts:
 
     downloader = Downloader()
 
-    def __init__(self, account: "Account", args: argparse.Namespace):
+    def __init__(self, account: "Account", debug: bool, csv: bool, verbose: bool):
         self._posts = self.loadJSON(Posts.post_path)
         self._failed  = {}
 
@@ -31,10 +31,10 @@ class Posts:
         self._skipped = 0
         self._counter = 0
 
-        self._debug = args.debug
-        self._csv = args.csv
-        self._verbose = args.verbose
-        Posts.downloader.verbose = args.verbose
+        self._debug = debug
+        self._csv = csv
+        self._verbose = verbose
+        Posts.downloader.verbose = verbose
 
         self.msg("Initialized!")
 
@@ -250,7 +250,7 @@ class Posts:
 
 
 class Account:
-    user_agent = "Geddit 1.0 by /u/aeluro1"
+    user_agent = "Geddit Saved Posts Backup Utiity (by /u/aeluro1)"
 
     def __init__(self):
         with open("user.json") as f:
@@ -279,7 +279,7 @@ class Account:
 
 def main(args):
     account = Account()
-    posts = Posts(account, args)
+    posts = Posts(account, args.debug, args.csv, args.verbose)
     posts.getPosts()
     posts.downloadAll()
     posts.saveAll(temp = False)
