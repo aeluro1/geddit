@@ -186,7 +186,7 @@ class Downloader:
         }
         response = requests.get(wb_api, headers = Downloader.headers, params = params, timeout = 30)
         if response.status_code == 429:
-            print("Wayback machine is overloaded - waiting 1 minute")
+            print("[Wayback machine is overloaded - waiting 1 minute]")
             sleep(61)
             response = requests.get(wb_api, headers = Downloader.headers, params = params, timeout = 30)
         response.raise_for_status()

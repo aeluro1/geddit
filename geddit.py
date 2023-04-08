@@ -68,7 +68,7 @@ class Posts:
         
         post = self.fixCrosspost(post)
         entry = self.generateEntry(post)
-        if any([entry["source"] == "", entry["url"] == "", entry["data"] == "[removed]"]):
+        if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]" or entry["data"] == []:
             ps = self.getPushshiftInfo(post.id)
             entry = self.generateEntry(ps)
         
