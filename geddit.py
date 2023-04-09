@@ -66,12 +66,14 @@ class Posts:
         if not isinstance(prawPost, praw.models.Submission):
             return None
         
-        post = self.postToDict(prawPost)
+        post = self.getPost(prawPost.id)
+        # post = self.postToDict(prawPost)
         post = self.fixCrosspost(post)
         entry = self.generateEntry(post)
         if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]" or entry["data"] == []:
-            ps = self.getPushshiftPost(post["id"])
-            entry = self.generateEntry(ps)
+            ps = self.getPrawPost(post["id"])
+            if ps is not {}:
+                entry = self.generateEntry(ps)
         
         return entry
 
@@ -109,17 +111,6 @@ class Posts:
 
         return entry
 
-    def getPushshiftPost(self, id: str) -> dict:
-        print(f"[Calling pushshift for post {id}]")
-        ps_api = "https://api.pushshift.io/reddit/search/submission"
-        try:
-            response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
-            response.raise_for_status()
-            data = response.json()["data"][0]
-            return data
-        except:
-            return {}
-
     def downloadEntry(self, entry: dict, id: str):
         try:
             if not self._debug:
@@ -138,19 +129,38 @@ class Posts:
             self.saveAll(temp = True)
             self._counter = 0
 
-    def postToDict(self, prawPost):
+    def getPost(self, id: str) -> dict:
+        post = self.getPushshiftPost(id)
+        if not post == {}:
+            return post
+        return self.getPrawPost(id)
+
+    def getPushshiftPost(self, id: str) -> dict:
+        print(f"[Calling pushshift for post {id}]")
+        ps_api = "https://api.pushshift.io/reddit/search/submission"
         try:
+            response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
+            response.raise_for_status()
+            post = response.json()["data"]
+            if not post == []:
+                return post[0]
+        except:
+            pass
+        return {}
+
+    def getPrawPost(self, id: str) -> dict:
+        try:
+            prawPost = self._account.reddit.submission(id = id)
             if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
                 post = vars(prawPost)
         except:
-            post = self.getPushshiftPost(prawPost.id)
+            return {}
         return post
 
     def fixCrosspost(self, post: dict) -> dict:
         xposts = post.get("crosspost_parent_list", None)
         if xposts is not None and len(xposts) > 0:
-            prawPost = self._account.reddit.submission(id = xposts[-1]["id"])
-            post = self.postToDict(prawPost)
+            post = self.getPost(xposts[-1]["id"])
         return post
 
     def processGallery(self, link: str) -> list[str]:
@@ -162,16 +172,10 @@ class Posts:
         urls = []
         
         if "reddit.com/gallery/" in link:
-            prawPost = self._account.reddit.submission(id = id)
-            post = self.postToDict(prawPost)
+            post = self.getPost(id)
 
             if post.get("gallery_data", None) is None:
-                try:
-                    post = self.getPushshiftPost(id)
-                    if post.get("gallery_data", None) is None:
-                        raise ValueError("Unable to extract album data via pushshift and praw")
-                except:
-                    return urls
+                return urls
 
             # Get links to each image in Reddit gallery
             # Try block to account for possibility of some posts media data not containing "p", "u", etc. elements

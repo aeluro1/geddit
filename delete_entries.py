@@ -11,8 +11,7 @@ posts = Path("data/posts.json")
 with open(posts) as f:
     data = json.load(f)
 
-posts.rename(posts.with_suffix(".old"))
-
+print(f"Total: {len(data)}")
 count = 0
 for item in bin.iterdir():
     try:
@@ -24,6 +23,8 @@ for item in bin.iterdir():
     except:
         continue
 print(f"{count} removed")
+
+posts.rename(posts.with_suffix(".old"))
 
 with open(posts, "w") as f:
     json.dump(data, f, indent = 4)

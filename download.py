@@ -64,7 +64,9 @@ class Downloader:
         if isinstance(entry["data"], list): # Albums aren't supported with wayback yet
             raise exc
         
-        wbList = [entry["url"], entry["url_preview"]]
+        wbList = [entry["url"]]
+        if entry["url_preview"] != "":
+            wbList.append(entry["url_preview"])
         for wb in wbList:
             try:
                 self.executeWayback(entry, wb, dest)
