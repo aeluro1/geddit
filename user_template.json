@@ -1,9 +1,9 @@
 {
     "reddit": {
-        "user": "",
-        "pass": "",
-        "client": "",
-        "secret": ""
+        "username": "",
+        "password": "",
+        "client_id": "",
+        "client_secret": ""
     },
     "imgur": {
         "client_id": [

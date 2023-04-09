@@ -267,10 +267,10 @@ class Account:
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,
-            client_id = self._info["client"],
-            client_secret = self._info["secret"],
-            username = self._info["user"],
-            password = self._info["pass"]
+            client_id = self._info["client_id"],
+            client_secret = self._info["client_secret"],
+            username = self._info["username"],
+            password = self._info["password"]
         )
         if not isinstance(self._imgurKey, list):
             raise ValueError("Update user.json Imgur key format")
