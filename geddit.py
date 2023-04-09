@@ -263,7 +263,7 @@ class Account:
         with open("user.json") as f:
             data = json.load(f)
         self._info = data["reddit"]
-        self._imgurKey = data["imgur"]["client"]
+        self._imgurKey = data["imgur"]["client_id"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,

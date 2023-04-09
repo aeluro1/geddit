@@ -56,6 +56,10 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
     python3 -m geddit [--csv]
     ```
 
+## Troubleshooting
+If you're experiencing problems with building the Docker image on Windows, try going into the Docker Engine settings and setting the `buildkit` option to `false`.<br>
+Another problem may arise when trying to run the Docker container, where the praw library throws an OAuthException. This is likely due to the Reddit account having 2FA enabled and it needs to be disabled for the program to work.
+
 ## To Do
 - [x] Implement post ~~and comment~~ downloading
 - [x] Incoporate wayback machine API calls for deleted media
