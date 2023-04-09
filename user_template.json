@@ -6,7 +6,7 @@
         "secret": ""
     },
     "imgur": {
-        "client": [
+        "client_id": [
             "",
             "",
             ""
