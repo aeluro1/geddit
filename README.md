@@ -59,6 +59,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 ## To Do
 - [x] Implement post ~~and comment~~ downloading
 - [x] Incoporate wayback machine API calls for deleted media
+- [ ] Add scraping to deal with rare instances where reddit API JSON does not adhere to regular, predictable formatting
 - [ ] Add multithreading
 - [ ] Add progress bar with tqdm
 - [ ] Add bloom filter to determine whether post is already saved, improve seek time
