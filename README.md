@@ -56,6 +56,9 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
     python3 -m geddit [--csv]
     ```
 
+## Troubleshooting
+If you're experiencing problems with building the Docker image on Windows, try going into the Docker Engine settings and setting the `buildkit` option to `false`.
+
 ## To Do
 - [x] Implement post ~~and comment~~ downloading
 - [x] Incoporate wayback machine API calls for deleted media
