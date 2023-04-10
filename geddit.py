@@ -84,7 +84,7 @@ class Posts:
 
         try:
             url_preview = post["preview"]["images"][0]["source"]["url"]
-        except:
+        except Exception:
             if "i.redd.it" in url:
                 url_preview = url.replace("i.redd.it", "preview.redd.it")
             else:
@@ -144,7 +144,7 @@ class Posts:
             post = response.json()["data"]
             if not post == []:
                 return post[0]
-        except:
+        except Exception:
             pass
         return {}
 
@@ -153,7 +153,7 @@ class Posts:
             prawPost = self._account.reddit.submission(id = id)
             if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
                 post = vars(prawPost)
-        except:
+        except Exception:
             return {}
         return post
 
@@ -189,7 +189,7 @@ class Posts:
                         url = img["s"]["u"]
                     url = url.split("?")[0].replace("preview", "i")
                     urls.append(url)
-            except:
+            except Exception:
                 return urls
         
         elif "imgur.com/a/" in link:

@@ -85,7 +85,7 @@ class Downloader:
                 self.execute(entry, wb, dest)
                 if self._verbose: print(f"Successfully downloaded with wayback URL")
                 return
-            except:
+            except Exception:
                 count += 1
                 continue
 
