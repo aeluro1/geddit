@@ -5,7 +5,7 @@ def trueLink(url):
         response = requests.head(url, allow_redirects = True, timeout = 10)
         response.raise_for_status()
         return response.url.split("?")[0]
-    except:
+    except Exception:
         return url
 
 class BlankLogger:

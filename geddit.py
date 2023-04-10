@@ -82,7 +82,7 @@ class Posts:
 
         try:
             url_preview = post["preview"]["images"][0]["source"]["url"]
-        except:
+        except Exception:
             url_preview = ""
 
         entry = {
@@ -114,7 +114,7 @@ class Posts:
             response.raise_for_status()
             data = response.json()["data"][0]
             return data
-        except:
+        except Exception:
             return {}
 
     def downloadEntry(self, entry: dict, id: str):
@@ -139,7 +139,7 @@ class Posts:
         try:
             if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
                 post = vars(prawPost)
-        except:
+        except Exception:
             post = self.getPushshiftPost(prawPost.id)
         return post
 
@@ -167,7 +167,7 @@ class Posts:
                     post = self.getPushshiftPost(id)
                     if post.get("gallery_data", None) is None:
                         raise ValueError("Unable to extract album data via pushshift and praw")
-                except:
+                except Exception:
                     return urls
 
             # Get links to each image in Reddit gallery
@@ -182,7 +182,7 @@ class Posts:
                         url = img["s"]["u"]
                     url = url.split("?")[0].replace("preview", "i")
                     urls.append(url)
-            except:
+            except Exception:
                 return urls
         
         elif "imgur.com/a/" in link:
