@@ -2,8 +2,10 @@
 # Run this, then run geddit again to retrieve the correct images.
 
 import json
+from pathlib import Path
 
-path = "data/posts.json"
+home = Path(__file__).resolve().parents[1]
+path = home / Path("data/posts.json")
 
 with open(path) as f:
     data = json.load(f)

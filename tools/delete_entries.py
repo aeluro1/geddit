@@ -4,10 +4,11 @@
 from pathlib import Path
 import json
 
-bin = Path("data/_BIN")
+home = Path(__file__).resolve().parents[1]
+bin = home / Path("data/_BIN")
 bin.mkdir(parents = True, exist_ok = True)
 
-posts = Path("data/posts.json")
+posts = home / Path("data/posts.json")
 with open(posts) as f:
     data = json.load(f)
 
@@ -20,11 +21,17 @@ for item in bin.iterdir():
             data.pop(id)
             print(f"{id} removed")
             count += 1
-    except:
+    except Exception:
         continue
-print(f"{count} removed")
+print(f"Total {count} removed")
 
-posts.rename(posts.with_suffix(".old"))
+if count == 0:
+    exit()
+
+newPosts = posts.with_suffix(".old")
+if newPosts.is_file():
+    newPosts.unlink()
+posts.rename(newPosts)
 
 with open(posts, "w") as f:
     json.dump(data, f, indent = 4)

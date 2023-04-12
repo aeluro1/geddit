@@ -44,7 +44,7 @@ class Downloader:
         # Then, attempt to download the redirected URL (usually automatic, sometimes fails)
         try:
             self.execute(entry, trueLink(url), dest)
-            if self._verbose: print(f"Successfully downloaded with true URL")
+            if self._verbose: print(f"Successfully downloaded with redirected URL")
             return
         except Exception as e:
             if self._verbose: print(e)
@@ -64,10 +64,11 @@ class Downloader:
         if isinstance(entry["data"], list): # Albums aren't supported with wayback yet
             raise exc
         
-        wbList = [entry["url"]]
+        wb_urls = [entry["url"]]
         if entry["url_preview"] != "":
-            wbList.append(entry["url_preview"])
-        for wb in wbList:
+            wb_urls.append(entry["url_preview"])
+
+        for wb in wb_urls:
             try:
                 self.executeWayback(entry, wb, dest)
                 return
@@ -79,6 +80,7 @@ class Downloader:
     def executeWayback(self, entry, url, dest):
         wb_urls = self.getWayback(url)
         count = 1
+
         for wb in wb_urls:
             try:
                 print(f"[Attempting wayback machine download: {count}/{len(wb_urls)}]")
@@ -130,8 +132,7 @@ class Downloader:
         raise RuntimeError(f"Unkown domain for post '{dest.name}': {source}")
 
     def getGeneric(self, url, dest):
-        if self._verbose:
-            print(f"Downloading image: {url}")
+        if self._verbose: print(f"Downloading image: {dest.name}")
 
         with requests.get(url, headers = Downloader.headers, stream = True, timeout = 30) as r:
             r.raise_for_status()
@@ -142,16 +143,14 @@ class Downloader:
                     f.write(chunk)
 
     def getText(self, data, dest):
-        if self._verbose:
-            print(f"Downloading text post: {dest.name}")
+        if self._verbose: print(f"Downloading text post: {dest.name}")
 
         dest = Path(str(dest) + ".md")
         with open(dest, "w", encoding = "utf-8") as f:
             f.write(data)
         
     def getVid(self, url, dest):
-        if self._verbose:
-            print(f"Downloading video: {url}")
+        if self._verbose: print(f"Downloading video: {dest.name}")
 
         ydl_opts = {
                     "quiet": True,
@@ -172,6 +171,8 @@ class Downloader:
             raise RuntimeError("Failed to download video")
 
     def getAlbum(self, urls, dest):
+        if self._verbose: print(f"Downloading album: {dest.name}")
+
         dest.mkdir(parents = True, exist_ok = True)
         count = 0
 
@@ -182,10 +183,8 @@ class Downloader:
             count += 1
             print(f"[Downloaded album for {dest.name}: {count}/{len(urls)}]")
 
-
     def getWayback(self, url):
-        if self._verbose:
-            print(f"Getting information from wayback machine: {url}")
+        if self._verbose: print(f"Getting information from wayback machine: {url}")
 
         wb_api = "https://web.archive.org/cdx/search/cdx"
         wb_src = "https://web.archive.org/web"

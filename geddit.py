@@ -1,10 +1,10 @@
-import praw
 import json
 import csv
 import argparse
 from pathlib import Path
 
 import requests
+import praw
 
 from download import Downloader
 
@@ -50,8 +50,9 @@ class Posts:
         for post in self._allPosts:
             self.downloadPost(post)
         
-    def downloadPost(self, post):
-        if not isinstance(post, praw.models.Submission): # Comment
+    def downloadPost(self, post: praw.models.Submission):
+        # Skip all comment instances
+        if not isinstance(post, praw.models.Submission):
             return
         
         if post.id in self._posts:
@@ -64,7 +65,7 @@ class Posts:
 
     def processPost(self, prawPost: praw.models.Submission) -> dict:
         if not isinstance(prawPost, praw.models.Submission):
-            return None
+            raise ValueError("Argument must be PRAW submission object")
         
         post = self.getPost(prawPost.id)
         # post = self.postToDict(prawPost)
@@ -106,6 +107,7 @@ class Posts:
         elif "reddit.com/gallery/" in url or "imgur.com/a/" in url:
             entry["data"] = self.processGallery(url)
 
+        # Image links can be obtained by simply appending extension to url
         if "imgur" in url and "/a/" not in url and Path(url).suffix == "":
             entry["url"] += ".png"
 
@@ -131,31 +133,32 @@ class Posts:
 
     def getPost(self, id: str) -> dict:
         post = self.getPushshiftPost(id)
-        if not post == {}:
+        if post != {}:
             return post
         return self.getPrawPost(id)
 
     def getPushshiftPost(self, id: str) -> dict:
-        print(f"[Calling pushshift for post {id}]")
+        if self._verbose: print(f"[Calling pushshift for post {id}]")
+
         ps_api = "https://api.pushshift.io/reddit/search/submission"
         try:
             response = requests.get(ps_api, headers = Downloader.headers, params = {"ids": id}, timeout = 30)
             response.raise_for_status()
-            post = response.json()["data"]
-            if not post == []:
-                return post[0]
+            post = response.json()["data"][0]
+            return post
         except Exception:
-            pass
-        return {}
+            return {}
 
     def getPrawPost(self, id: str) -> dict:
+        if self._verbose: print(f"[Calling PRAW for post {id}]")
+
         try:
             prawPost = self._account.reddit.submission(id = id)
             if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
                 post = vars(prawPost)
+            return post
         except Exception:
             return {}
-        return post
 
     def fixCrosspost(self, post: dict) -> dict:
         xposts = post.get("crosspost_parent_list", None)
@@ -164,10 +167,8 @@ class Posts:
         return post
 
     def processGallery(self, link: str) -> list[str]:
-        if self._verbose:
-            print(f"Processing gallery at {link}")
+        if self._verbose: print(f"Processing gallery at {link}")
 
-        # Append Reddit gallery data to 'entry' so that it is not necessary to use PRAW again when downloading
         id = link.strip("/").split("/")[-1]
         urls = []
         
@@ -189,7 +190,8 @@ class Posts:
                         url = img["s"]["u"]
                     url = url.split("?")[0].replace("preview", "i")
                     urls.append(url)
-            except Exception:
+            except Exception as e:
+                if self._verbose: print(e)
                 return urls
         
         elif "imgur.com/a/" in link:
@@ -206,8 +208,7 @@ class Posts:
                 if int(response.headers["x-ratelimit-clientremaining"]) < 1000:
                     self._account.imgurKey.pop(0)
             except Exception as e:
-                if self._verbose:
-                    print(e)
+                if self._verbose: print(e)
             
         return urls
     
@@ -235,15 +236,15 @@ class Posts:
             json.dump(data, f, indent = 4)
 
     def loadJSON(self, path: Path) -> list[praw.models.Submission]:
-        if path.is_file():
-            with open(path) as f:
-                posts = json.load(f)
-        else:
-            posts = {}
+        if not path.is_file():
+            return {}
+        
+        with open(path) as f:
+            posts = json.load(f)
 
         path_temp = Path(str(path) + "_temp")
 
-        if (path_temp).is_file():
+        if path_temp.is_file():
             with open(path_temp) as f:
                 posts.update(json.load(f))
 
@@ -252,11 +253,14 @@ class Posts:
     def loadCSV(self, path: Path) -> list[str]:
         if not path.is_file():
             return []
+        
         with open(path, newline = "", encoding = "utf-8") as f:
             reader = csv.reader(f)
             ids = [row[0] for row in reader]
             del ids[0]
+
         names = [id if id.startswith("t3_") else f"t3_{id}" for id in ids]
+        
         return names
             
     def msg(self, msg):
@@ -269,16 +273,18 @@ class Account:
     def __init__(self):
         with open("user.json") as f:
             data = json.load(f)
+
         self._info = data["reddit"]
-        self._imgurKey = data["imgur"]["client"]
+        self._imgurKey = data["imgur"]["client_id"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,
-            client_id = self._info["client"],
-            client_secret = self._info["secret"],
-            username = self._info["user"],
-            password = self._info["pass"]
+            client_id = self._info["client_id"],
+            client_secret = self._info["client_secret"],
+            username = self._info["username"],
+            password = self._info["password"]
         )
+        
         if not isinstance(self._imgurKey, list):
             raise ValueError("Update user.json Imgur key format")
 
