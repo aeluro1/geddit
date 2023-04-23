@@ -140,8 +140,7 @@ class Downloader:
             f.write(data)
         
     def getVid(self, url, dest):
-        if self._verbose:
-            print(f"Downloading video: {url}")
+        print(f"[Downloading video: {url}]")
 
         ydl_opts = {
                     "quiet": True,
