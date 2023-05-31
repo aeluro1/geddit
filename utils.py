@@ -1,6 +1,6 @@
 import requests
 
-def trueLink(url):
+def true_link(url):
     try:
         response = requests.head(url, allow_redirects = True, timeout = 10)
         response.raise_for_status()

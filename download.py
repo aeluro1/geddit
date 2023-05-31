@@ -8,7 +8,7 @@ import re
 import requests
 from yt_dlp import YoutubeDL
 
-from utils import trueLink, BlankLogger
+from utils import true_link, BlankLogger
 
 
 class Downloader:
@@ -43,7 +43,7 @@ class Downloader:
 
         # Then, attempt to download the redirected URL (usually automatic, sometimes fails)
         try:
-            self.execute(entry, trueLink(url), dest)
+            self.execute(entry, true_link(url), dest)
             if self._verbose: print(f"Successfully downloaded with redirected URL")
             return
         except Exception as e:
@@ -70,15 +70,15 @@ class Downloader:
 
         for wb in wb_urls:
             try:
-                self.executeWayback(entry, wb, dest)
+                self.execute_wayback(entry, wb, dest)
                 return
             except Exception as e:
                 if self._verbose: print(e)
 
         raise exc
     
-    def executeWayback(self, entry, url, dest):
-        wb_urls = self.getWayback(url)
+    def execute_wayback(self, entry, url, dest):
+        wb_urls = self.get_wayback(url)
         count = 1
 
         for wb in wb_urls:
@@ -97,25 +97,25 @@ class Downloader:
         source = entry["source"]
 
         # Annoyingly, some links redirect to removed data (a generic 'removed' picture) but don't return an HTTP error
-        checkLink = trueLink(url)
+        checkLink = true_link(url)
         if any(badLink in checkLink for badLink in self._sources["invalid"]):
             raise ValueError("Bad link")
 
         if source in self._sources["vid"]: # Video detected
-            self.getVid(url, dest)
+            self.get_vid(url, dest)
             return
 
         if source in self._sources["img"]: # Image detected
             if "imgur.com/a/" in url or "reddit.com/gallery/" in url: # Fetch reddit gallery
-                self.getAlbum(entry["data"], dest)
+                self.get_album(entry["data"], dest)
             elif url.endswith(".gifv"): # Edge case for gif "video" hosted on Reddit image site
-                self.getVid(url, dest)
+                self.get_vid(url, dest)
             else: # Generic image download
-                self.getGeneric(url, dest)
+                self.get_generic(url, dest)
             return
 
         if source.startswith("self."): # Text post
-            self.getText(entry["data"], dest)
+            self.get_text(entry["data"], dest)
             return
 
         # Unknown post format - see if media type is encoded in HTTP response
@@ -123,15 +123,15 @@ class Downloader:
         response.raise_for_status()
         mediaType = response.headers["content-type"]
         if "image" in mediaType.lower():
-            self.getGeneric(url, dest)
+            self.get_generic(url, dest)
             return
         elif "video" in mediaType.lower():
-            self.getVid(url, dest)
+            self.get_vid(url, dest)
             return
         
         raise RuntimeError(f"Unkown domain for post '{dest.name}': {source}")
 
-    def getGeneric(self, url, dest):
+    def get_generic(self, url, dest):
         if self._verbose: print(f"Downloading image: {dest.name}")
 
         with requests.get(url, headers = Downloader.headers, stream = True, timeout = 30) as r:
@@ -142,14 +142,14 @@ class Downloader:
                 for chunk in r.iter_content(chunk_size = 1024 * 1024 * 1): # 1 MB
                     f.write(chunk)
 
-    def getText(self, data, dest):
+    def get_text(self, data, dest):
         if self._verbose: print(f"Downloading text post: {dest.name}")
 
         dest = Path(str(dest) + ".md")
         with open(dest, "w", encoding = "utf-8") as f:
             f.write(data)
         
-    def getVid(self, url, dest):
+    def get_vid(self, url, dest):
         if self._verbose: print(f"Downloading video: {dest.name}")
 
         ydl_opts = {
@@ -170,7 +170,7 @@ class Downloader:
         if not any([file.name.startswith(dest.name) for file in dest.parent.iterdir()]):
             raise RuntimeError("Failed to download video")
 
-    def getAlbum(self, urls, dest):
+    def get_album(self, urls, dest):
         if self._verbose: print(f"Downloading album: {dest.name}")
 
         dest.mkdir(parents = True, exist_ok = True)
@@ -179,11 +179,11 @@ class Downloader:
         if len(urls) == 0:
             raise ValueError("No images in album found")
         for url in urls:
-            self.getGeneric(url, dest / str(count))
+            self.get_generic(url, dest / str(count))
             count += 1
             print(f"[Downloaded album for {dest.name}: {count}/{len(urls)}]")
 
-    def getWayback(self, url):
+    def get_wayback(self, url):
         if self._verbose: print(f"Getting information from wayback machine: {url}")
 
         wb_api = "https://web.archive.org/cdx/search/cdx"

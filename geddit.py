@@ -17,17 +17,17 @@ class Posts:
     downloader = Downloader()
 
     def __init__(self, account: "Account", debug: bool = False, csv: bool = False, verbose: bool = False):
-        self._posts = self.loadJSON(Posts.post_path)
+        self._posts = self.load_JSON(Posts.post_path)
         self._failed  = {}
 
-        self._allPosts = []
+        self._all_posts = []
         
         Posts.post_path.parent.mkdir(parents = True, exist_ok = True)
 
         self._account = account
 
-        self._addedCount = 0
-        self._failedCount = 0
+        self._added_count = 0
+        self._failed_count = 0
         self._skipped = 0
         self._counter = 0
 
@@ -38,19 +38,19 @@ class Posts:
 
         self.msg("Initialized!")
 
-    def getPosts(self):
+    def get_posts(self):
         reddit = self._account.reddit
         
         if self._csv:
-            self._allPosts = reddit.info(fullnames = self.loadCSV(Posts.csv_path))
+            self._all_posts = reddit.info(fullnames = self.load_CSV(Posts.csv_path))
         else:
-            self._allPosts = reddit.user.me().saved(limit = None)
+            self._all_posts = reddit.user.me().saved(limit = None)
 
-    def downloadAll(self):
-        for post in self._allPosts:
-            self.downloadPost(post)
+    def download_all(self):
+        for post in self._all_posts:
+            self.download_post(post)
         
-    def downloadPost(self, post: praw.models.Submission):
+    def download_post(self, post: praw.models.Submission):
         # Skip all comment instances
         if not isinstance(post, praw.models.Submission):
             return
@@ -60,25 +60,25 @@ class Posts:
             self.msg(f"Skipped post {post.id} from r/{self._posts[post.id]['sub']} - already in database")
             return
         
-        entry = self.processPost(post)
-        self.downloadEntry(entry, post.id)
+        entry = self.process_post(post)
+        self.download_entry(entry, post.id)
 
-    def processPost(self, prawPost: praw.models.Submission) -> dict:
-        if not isinstance(prawPost, praw.models.Submission):
+    def process_post(self, praw_post: praw.models.Submission) -> dict:
+        if not isinstance(praw_post, praw.models.Submission):
             raise ValueError("Argument must be PRAW submission object")
         
-        post = self.getPost(prawPost.id)
-        # post = self.postToDict(prawPost)
-        post = self.fixCrosspost(post)
-        entry = self.generateEntry(post)
+        post = self.get_post(praw_post.id)
+        # post = self.postToDict(praw_post)
+        post = self.fix_crosspost(post)
+        entry = self.generate_entry(post)
         if entry["source"] == "" or entry["url"] == "" or entry["data"] == "[removed]" or entry["data"] == []:
-            ps = self.getPrawPost(post["id"])
+            ps = self.get_praw_post(post["id"])
             if ps is not {}:
-                entry = self.generateEntry(ps)
+                entry = self.generate_entry(ps)
         
         return entry
 
-    def generateEntry(self, post: dict) -> dict:
+    def generate_entry(self, post: dict) -> dict:
         title = post.get("title", "").encode("ascii", "ignore").decode()
         author = str(post.get("author", "")) if post.get("author", "") is not None else "[deleted]"
         url = post.get("url_overridden_by_dest", post.get("url", ""))
@@ -105,7 +105,7 @@ class Posts:
         if post.get("is_self", False):
             entry["data"] = post.get("selftext", "")
         elif "reddit.com/gallery/" in url or "imgur.com/a/" in url:
-            entry["data"] = self.processGallery(url)
+            entry["data"] = self.process_gallery(url)
 
         # Image links can be obtained by simply appending extension to url
         if "imgur" in url and "/a/" not in url and Path(url).suffix == "":
@@ -113,31 +113,31 @@ class Posts:
 
         return entry
 
-    def downloadEntry(self, entry: dict, id: str):
+    def download_entry(self, entry: dict, id: str):
         try:
             if not self._debug:
                 Posts.downloader.download(entry, id)
-            self._addedCount += 1
+            self._added_count += 1
             self._posts[id] = entry
             self.msg(f"Added post {id} from r/{entry['sub']}")
         except Exception as e:
-            self._failedCount += 1
+            self._failed_count += 1
             entry["error"] = str(e)
             self._failed[id] = entry
             self.msg(f"Failed to add post {id} from r/{entry['sub']}: {str(e)}")
 
         self._counter += 1
         if self._counter == 50:
-            self.saveAll(temp = True)
+            self.save_all(temp = True)
             self._counter = 0
 
-    def getPost(self, id: str) -> dict:
-        post = self.getPushshiftPost(id)
+    def get_post(self, id: str) -> dict:
+        post = self.get_pushshift_post(id)
         if post != {}:
             return post
-        return self.getPrawPost(id)
+        return self.get_praw_post(id)
 
-    def getPushshiftPost(self, id: str) -> dict:
+    def get_pushshift_post(self, id: str) -> dict:
         if self._verbose: print(f"[Calling pushshift for post {id}]")
 
         ps_api = "https://api.pushshift.io/reddit/search/submission"
@@ -149,31 +149,31 @@ class Posts:
         except Exception:
             return {}
 
-    def getPrawPost(self, id: str) -> dict:
+    def get_praw_post(self, id: str) -> dict:
         if self._verbose: print(f"[Calling PRAW for post {id}]")
 
         try:
-            prawPost = self._account.reddit.submission(id = id)
-            if hasattr(prawPost, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
-                post = vars(prawPost)
+            praw_post = self._account.reddit.submission(id = id)
+            if hasattr(praw_post, "title") or True: # Verifies and loads PRAW object to deal with rare cases where submission object errors
+                post = vars(praw_post)
             return post
         except Exception:
             return {}
 
-    def fixCrosspost(self, post: dict) -> dict:
+    def fix_crosspost(self, post: dict) -> dict:
         xposts = post.get("crosspost_parent_list", None)
         if xposts is not None and len(xposts) > 0:
-            post = self.getPost(xposts[-1]["id"])
+            post = self.get_post(xposts[-1]["id"])
         return post
 
-    def processGallery(self, link: str) -> list[str]:
+    def process_gallery(self, link: str) -> list[str]:
         if self._verbose: print(f"Processing gallery at {link}")
 
         id = link.strip("/").split("/")[-1]
         urls = []
         
         if "reddit.com/gallery/" in link:
-            post = self.getPost(id)
+            post = self.get_post(id)
 
             if post.get("gallery_data", None) is None:
                 return urls
@@ -197,7 +197,7 @@ class Posts:
         elif "imgur.com/a/" in link:
             headers = dict(Downloader.headers)
             headers.update({
-                "Authorization": f"Client-ID {self._account.imgurKey[0]}"
+                "Authorization": f"Client-ID {self._account.imgur_key[0]}"
             })
 
             try:
@@ -206,13 +206,13 @@ class Posts:
                 urls = [item["link"] for item in response.json()["data"]]
 
                 if int(response.headers["x-ratelimit-clientremaining"]) < 1000:
-                    self._account.imgurKey.pop(0)
+                    self._account.imgur_key.pop(0)
             except Exception as e:
                 if self._verbose: print(e)
             
         return urls
     
-    def saveAll(self, temp: bool = False):
+    def save_all(self, temp: bool = False):
         files = [(self._posts, Posts.post_path), (self._failed, Posts.fail_path)]
 
         self.msg(f"Saving items to JSON...")
@@ -235,7 +235,7 @@ class Posts:
         with open(path, "w") as f:
             json.dump(data, f, indent = 4)
 
-    def loadJSON(self, path: Path) -> list[praw.models.Submission]:
+    def load_JSON(self, path: Path) -> list[praw.models.Submission]:
         if not path.is_file():
             return {}
         
@@ -250,7 +250,7 @@ class Posts:
 
         return posts
     
-    def loadCSV(self, path: Path) -> list[str]:
+    def load_CSV(self, path: Path) -> list[str]:
         if not path.is_file():
             return []
         
@@ -264,7 +264,7 @@ class Posts:
         return names
             
     def msg(self, msg):
-        print(f"[T: {len(self._posts)}][A: {self._addedCount}][F: {self._failedCount}][S: {self._skipped}] {msg}")
+        print(f"[T: {len(self._posts)}][A: {self._added_count}][F: {self._failed_count}][S: {self._skipped}] {msg}")
 
 
 class Account:
@@ -275,7 +275,7 @@ class Account:
             data = json.load(f)
 
         self._info = data["reddit"]
-        self._imgurKey = data["imgur"]["client_id"]
+        self._imgur_key = data["imgur"]["client_id"]
 
         self._reddit = praw.Reddit(
             user_agent = Account.user_agent,
@@ -285,7 +285,7 @@ class Account:
             password = self._info["password"]
         )
         
-        if not isinstance(self._imgurKey, list):
+        if not isinstance(self._imgur_key, list):
             raise ValueError("Update user.json Imgur key format")
 
     @property
@@ -293,16 +293,16 @@ class Account:
         return self._reddit
     
     @property
-    def imgurKey(self):
-        return self._imgurKey
+    def imgur_key(self):
+        return self._imgur_key
 
 
 def main(args):
     account = Account()
     posts = Posts(account, args.debug, args.csv, args.verbose)
-    posts.getPosts()
-    posts.downloadAll()
-    posts.saveAll(temp = False)
+    posts.get_posts()
+    posts.download_all()
+    posts.save_all(temp = False)
 
 
 if __name__ == "__main__":
