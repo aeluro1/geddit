@@ -20,7 +20,7 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: rgb(206, 227, 248);</string>
+   <string notr="true">background-color: rgb(218, 224, 230);</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -39,119 +39,6 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item>
-     <widget class="QFrame" name="topBar">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>40</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>40</height>
-       </size>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(0, 170, 255);</string>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QFrame" name="frameToggle">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color:rgb(0, 170, 255);</string>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="btnToggle">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="accessibleDescription">
-             <string>toggle_btn</string>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: rgb(255, 69, 0);</string>
-            </property>
-            <property name="text">
-             <string>Toggle</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QFrame" name="frameTop_2">
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
     <item>
      <widget class="QFrame" name="body">
       <property name="frameShape">
@@ -215,7 +102,7 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item alignment="Qt::AlignTop">
+          <item>
            <widget class="QFrame" name="frameNav">
             <property name="frameShape">
              <enum>QFrame::NoFrame</enum>
@@ -250,15 +137,15 @@
                <property name="styleSheet">
                 <string notr="true">QPushButton {
 	color: rgb(255, 255, 255);
-	background-color: rgb(0, 0, 0);
+	background-color: rgb(0, 121, 211);
 	border: 0px solid;
 }
 QPushButton:hover {
-	background-color: rgb(48, 255, 248);
+	background-color: rgb(206, 227, 248);
 }</string>
                </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Home</string>
                </property>
               </widget>
              </item>
@@ -270,8 +157,18 @@ QPushButton:hover {
                  <height>40</height>
                 </size>
                </property>
+               <property name="styleSheet">
+                <string notr="true">QPushButton {
+	color: rgb(255, 255, 255);
+	background-color: rgb(0, 121, 211);
+	border: 0px solid;
+}
+QPushButton:hover {
+	background-color: rgb(206, 227, 248);
+}</string>
+               </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Download</string>
                </property>
               </widget>
              </item>
@@ -283,12 +180,71 @@ QPushButton:hover {
                  <height>40</height>
                 </size>
                </property>
+               <property name="styleSheet">
+                <string notr="true">QPushButton {
+	color: rgb(255, 255, 255);
+	background-color: rgb(0, 121, 211);
+	border: 0px solid;
+}
+QPushButton:hover {
+	background-color: rgb(206, 227, 248);
+}</string>
+               </property>
                <property name="text">
-                <string>PushButton</string>
+                <string>Settings</string>
                </property>
               </widget>
              </item>
             </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton {
+	color: rgb(255, 255, 255);
+	background-color: rgb(0, 121, 211);
+	border: 0px solid;
+}
+QPushButton:hover {
+	background-color: rgb(206, 227, 248);
+}</string>
+            </property>
+            <property name="text">
+             <string>About</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="styleSheet">
+             <string notr="true">color: rgb(255, 69, 0);</string>
+            </property>
+            <property name="text">
+             <string>Geddit v1.0</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
            </widget>
           </item>
          </layout>
@@ -320,8 +276,9 @@ QPushButton:hover {
           </property>
           <item>
            <widget class="QStackedWidget" name="widgetPages">
-            <widget class="QWidget" name="page"/>
-            <widget class="QWidget" name="page_2"/>
+            <widget class="QWidget" name="pageHome"/>
+            <widget class="QWidget" name="pageSettings"/>
+            <widget class="QWidget" name="pageDownload"/>
            </widget>
           </item>
          </layout>
@@ -331,25 +288,6 @@ QPushButton:hover {
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1000</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuSettings">
-    <property name="title">
-     <string>Settings</string>
-    </property>
-    <addaction name="actionAuthentication"/>
-    <addaction name="actionPreferences"/>
-    <addaction name="actionAbout"/>
-   </widget>
-   <addaction name="menuSettings"/>
   </widget>
   <action name="actionAuthentication">
    <property name="text">
