@@ -35,34 +35,8 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # self.setWindowTitle("Geddit")
+        self.setWindowTitle("Geddit")
         # self.setFixedSize(*WINDOW_SIZE)
-
-        # self._generalLayout = QVBoxLayout()
-        # centralWidget = QWidget(self)
-        # centralWidget.setLayout(self._generalLayout)
-        # self.setCentralWidget(centralWidget)
-
-        # self._createMenu()
-        # self._createToolbar()
-        # self._createStatusBar()
-        
-        # self.buttons = []
-        # self.buttons.append(QPushButton("temp"))
-
-    def _createMenu(self):
-        menu = self.menuBar().addMenu("&Menu")
-        menu.addAction("&Exit", self.close)
-
-    def _createToolbar(self):
-        tools = QToolBar()
-        tools.addAction("Exit", self.close)
-        self.addToolBar(tools)
-    
-    def _createStatusBar(self):
-        status = QStatusBar()
-        status.showMessage("Initialized window")
-        self.setStatusBar(status)
 
     def _createDisplay(self):
         self._display = QLineEdit()
