@@ -6,21 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
+    <width>800</width>
     <height>500</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="minimumSize">
    <size>
-    <width>1000</width>
-    <height>500</height>
+    <width>600</width>
+    <height>400</height>
    </size>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
-  </property>
-  <property name="styleSheet">
-   <string notr="true">background-color: rgb(218, 224, 230);</string>
+   <string>Geddit</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -78,7 +81,23 @@
           </size>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgb(95, 153, 207);</string>
+          <string notr="true">QFrame#frameSideMenu {
+	background-color: #5f99cf;
+}
+
+QPushButton {
+	color: #ffffff;
+	background-color: #0079d3;
+	border: 0px solid;
+}
+
+QPushButton:hover {
+	background-color: #cee3f8;
+}
+
+QLabel#gedditLabel {
+	color: #ff4500;
+}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
@@ -134,16 +153,6 @@
                  <height>40</height>
                 </size>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton {
-	color: rgb(255, 255, 255);
-	background-color: rgb(0, 121, 211);
-	border: 0px solid;
-}
-QPushButton:hover {
-	background-color: rgb(206, 227, 248);
-}</string>
-               </property>
                <property name="text">
                 <string>Home</string>
                </property>
@@ -156,16 +165,6 @@ QPushButton:hover {
                  <width>0</width>
                  <height>40</height>
                 </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton {
-	color: rgb(255, 255, 255);
-	background-color: rgb(0, 121, 211);
-	border: 0px solid;
-}
-QPushButton:hover {
-	background-color: rgb(206, 227, 248);
-}</string>
                </property>
                <property name="text">
                 <string>Download</string>
@@ -180,45 +179,25 @@ QPushButton:hover {
                  <height>40</height>
                 </size>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QPushButton {
-	color: rgb(255, 255, 255);
-	background-color: rgb(0, 121, 211);
-	border: 0px solid;
-}
-QPushButton:hover {
-	background-color: rgb(206, 227, 248);
-}</string>
-               </property>
                <property name="text">
                 <string>Settings</string>
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="btnPageAbout">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>40</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>About</string>
+               </property>
+              </widget>
+             </item>
             </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>40</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QPushButton {
-	color: rgb(255, 255, 255);
-	background-color: rgb(0, 121, 211);
-	border: 0px solid;
-}
-QPushButton:hover {
-	background-color: rgb(206, 227, 248);
-}</string>
-            </property>
-            <property name="text">
-             <string>About</string>
-            </property>
            </widget>
           </item>
           <item>
@@ -235,10 +214,7 @@ QPushButton:hover {
            </spacer>
           </item>
           <item>
-           <widget class="QLabel" name="label">
-            <property name="styleSheet">
-             <string notr="true">color: rgb(255, 69, 0);</string>
-            </property>
+           <widget class="QLabel" name="gedditLabel">
             <property name="text">
              <string>Geddit v1.0</string>
             </property>
@@ -302,12 +278,33 @@ QPushButton:hover {
                  <enum>QFrame::Raised</enum>
                 </property>
                 <layout class="QHBoxLayout" name="horizontalLayout">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
                  <item>
                   <widget class="QFrame" name="frameSearch">
                    <property name="minimumSize">
                     <size>
-                     <width>60</width>
+                     <width>400</width>
                      <height>0</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>400</width>
+                     <height>16777215</height>
                     </size>
                    </property>
                    <property name="frameShape">
@@ -409,7 +406,7 @@ QPushButton:hover {
                       <property name="sizeHint" stdset="0">
                        <size>
                         <width>20</width>
-                        <height>20</height>
+                        <height>10</height>
                        </size>
                       </property>
                      </spacer>
@@ -437,7 +434,7 @@ QPushButton:hover {
                    </property>
                    <property name="sizeHint" stdset="0">
                     <size>
-                     <width>450</width>
+                     <width>327</width>
                      <height>20</height>
                     </size>
                    </property>
@@ -456,14 +453,19 @@ QPushButton:hover {
                 </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <widget class="QListWidget" name="listWidget">
+                  <widget class="QListWidget" name="resultsList">
                    <property name="frameShape">
                     <enum>QFrame::Box</enum>
                    </property>
+                   <item>
+                    <property name="text">
+                     <string>Test</string>
+                    </property>
+                   </item>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QGraphicsView" name="graphicsView">
+                  <widget class="QGraphicsView" name="resultsView">
                    <property name="frameShape">
                     <enum>QFrame::Box</enum>
                    </property>
