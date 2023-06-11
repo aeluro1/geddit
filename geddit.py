@@ -284,7 +284,7 @@ class Account:
     user_agent = "Geddit Saved Posts Backup Utiity (by /u/aeluro1)"
 
     def __init__(self):
-        with open("user.json") as f:
+        with open("config/user.json") as f:
             data = json.load(f)
 
         self._info = data["reddit"]

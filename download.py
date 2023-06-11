@@ -15,7 +15,7 @@ class Downloader:
     headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"}
 
     def __init__(self):
-        with open("sources.json") as f:
+        with open("config/sources.json") as f:
             self._sources = json.load(f)
 
         self._verbose = False
