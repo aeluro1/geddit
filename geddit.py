@@ -262,6 +262,19 @@ class Posts:
         names = [id if id.startswith("t3_") else f"t3_{id}" for id in ids]
         
         return names
+    
+    def find(self, query: dict) -> list[dict]:
+        if query is None:
+            return []
+        
+        results = None
+        for (key, val) in enumerate(query):
+            if results is None:
+                results = list(filter(lambda item: item[key] == val, self._posts))
+            else:
+                results = list(filter(lambda item: item[key] == val, results))
+        
+        return results
             
     def msg(self, msg):
         print(f"[T: {len(self._posts)}][A: {self._added_count}][F: {self._failed_count}][S: {self._skipped}] {msg}")

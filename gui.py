@@ -1,71 +1,19 @@
 import sys
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import (
     QApplication,
-    QMainWindow,
-    QDialog,
-
-    QWidget,
-
-    QVBoxLayout,
-    QHBoxLayout,
-    QFormLayout,
-    QGridLayout,
-
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QDialogButtonBox,
-
-    QStatusBar,
-    QToolBar
+    QMainWindow
 )
 
 from ui_mainwindow import Ui_MainWindow
 from ui_functions import UIFunctions
-
-WINDOW_SIZE = (250, 300)
-
-# Consider: Qt Designer, uic, pyuic6
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(parent = None)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
-        self.setWindowTitle("Geddit")
-        # self.setFixedSize(*WINDOW_SIZE)
-
-    def _createDisplay(self):
-        self._display = QLineEdit()
-        self._display.setFixedHeight(50)
-        self._display.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self._display.setReadOnly(True)
-        self._generalLayout.addWidget(self._display)
-
-    def setDisplayText(self, text):
-        self._display.setText(text)
-        self._display.setFocus()
-
-    def getDisplayText(self):
-        return self._display.text()
-    
-    def clearDisplayText(self):
-        self.setDisplayText("")
-
-
-        # layout = QVBoxLayout()
-        # layout.addWidget(QPushButton("Download"))
-        # test = QHBoxLayout()
-        # test.addWidget(QPushButton("a"))
-        # test.addWidget(QPushButton("a"))
-        # test.addWidget(QPushButton("a"))
-        # layout.addLayout(test)
-        # layout.addWidget(QPushButton("test"))
-        # self.setGeometry(100, 100, 280, 80)
-        # self.setLayout(layout)
 
 class GedditModel():
     def download(self, url):
@@ -84,16 +32,14 @@ class GedditController():
         self._initializeSignalsAndSlots()
     
     # Event handlers here
-    def _callback(self):
+    def _setupCallbacks(self):
         pass
 
     def _initializeSignalsAndSlots(self):
-        self._view.ui.Btn_Toggle.clicked.connect(lambda: UIFunctions.toggleMenu(self, 250, True))
-        # self._view.buttons[0].clicked.connect(partial(self._callback, 1))
-
-        self._view.ui.btnPageHome.clicked.connect(lambda: self.ui.stackedWidget.setCurrentWidget(self._view.ui.pageHome))
-        self._view.ui.btnPageDownload.clicked.connect(lambda: self.ui.stackedWidget.setCurrentWidget(self._view.ui.pageDownload))
-        self._view.ui.btnPageSettings.clicked.connect(lambda: self.ui.stackedWidget.setCurrentWidget(self._view.ui.pageSettings))
+        self._view.ui.btnPageHome.clicked.connect(lambda: self._view.ui.widgetPages.setCurrentIndex(0))
+        self._view.ui.btnPageDownload.clicked.connect(lambda: self._view.ui.widgetPages.setCurrentIndex(1))
+        self._view.ui.btnPageSettings.clicked.connect(lambda: self._view.ui.widgetPages.setCurrentIndex(2))
+        self._view.ui.btnPageAbout.clicked.connect(lambda: self._view.ui.widgetPages.setCurrentIndex(3))
 
 
 def main():

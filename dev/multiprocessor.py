@@ -6,37 +6,57 @@ from download import Downloader
 headers = {}
 
 class Worker(mp.Process):
-    def __init__(self, jobs):
+    def __init__(self, jobs, results):
         super().__init__()
         self._jobs = jobs
+        self._results = results
         self._downloader = Downloader()
 
     def run(self):
         while True:
             url = self._jobs.get()
             if url is None:
+                self._results.put(None)
                 break
 
-        req = url.strip()
+            try:
+                self._results.put("Success")
+                pass
+                # requests with allow_redirects = True, headers
+            except Exception as e:
+                print(str(e))
 
-        try:
-            pass
-            # requests with allow_redirects = True, headers
-        except Exception as e:
-            print(str(e))
+class Listener(mp.Process):
+    """Process for recording downloaded data to file with multiprocessing support"""
+    def __init__(self, queue):
+        super().__init__()
+        self._queue = queue
+
+    def run(self):
+        with open("temp.txt", "w") as f:
+            while True:
+                item = self._queue.get()
+                if item is None:
+                    break
+
+        # return some value as an asyncresult
+
 
 class Master():
 
     def __init__(self, jobs, num_workers):
         num_workers = mp.cpu_count()
+        manager = mp.Manager()
 
-        failed_posts = mp.Manager().dict()
-        succeeded_posts = mp.Manager.dict()
+        failed_posts = manager.dict()
+        succeeded_posts = manager.dict()
+        counter = manager.Value()
 
-        iolock = mp.Lock()
+        jobs = manager.Queue()
+        results = manager.Queue()
 
-        jobs = mp.Queue()
-        results = mp.Queue()
+        listener = Listener(results)
+        listener.start()
 
         workers = []
         for i in range(num_workers):
@@ -54,25 +74,5 @@ class Master():
         for i in num_workers:
             workers[i].join()
         
-        jobs.join()
-
-
-
-########
-
-from itertools import repeat
-import multiprocessing as mp
-import os
-import pprint
-
-def f(d: dict) -> None:
-    pid = os.getpid()
-    d[pid] = "Hi, I was written by process %d" % pid
-
-if __name__ == '__main__':
-    with mp.Manager() as manager:
-        d = manager.dict()
-        with manager.Pool() as pool:
-            pool.map(f, repeat(d, 10))
-        # `d` is a DictProxy object that can be converted to dict
-        pprint.pprint(dict(d))
+        jobs.join() # Wait for process to terminate; if using pool, need to use close() beforehand to stop accepting new jobs
+        listener.join()
