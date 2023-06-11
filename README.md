@@ -7,6 +7,7 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 * Download saved text posts and media content (gifs, videos, albums) from a variety of sources
 * Extract deleted media using pushshift, cached reddit previews, and the wayback machine
 * Store a record of all saved and unsaved posts locally, skipping already-saved posts in subsequent program executions
+* Utilize a graphical user interface (GUI) to navigate saved posts and fetch a custom list of download targets
 
 ## Preparing the config files
 1. [Create an app on Reddit](https://www.reddit.com/prefs/apps) to obtain an API client ID and secret.
@@ -24,6 +25,13 @@ This program backs up a Reddit user's saved posts locally. It currently emphasiz
 1. [Request your Reddit data](https://www.reddit.com/settings/data-request) as a zip file.
 2. Move the `saved_posts.csv` within the zip file into the home directory of the repository.
 3. When starting the Docker environment or running the Python program, append `--csv` to the command.
+
+## GUI (WIP)
+Geddit comes with a QT6-based user interface for easier usage. This interface may be used to search through saved media based on a variety of search parameters or download a custom list of targets (posts, subreddits, etc.).
+
+| Search page | Download page |
+| :---: | :---: |
+| ![Search page](https://github.com/aeluro1/geddit/assets/103622874/9ac0d840-34ce-4dc3-97c4-4b6d06b0f738) | ![Download page](https://github.com/aeluro1/geddit/assets/103622874/d273bf8b-fc9f-4c03-b289-d458922285de) |
 
 ## Usage (Docker)
 1. Clone the repository.
