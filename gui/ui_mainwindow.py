@@ -480,7 +480,7 @@ class Ui_MainWindow(object):
         __sortingEnabled = self.resultsList.isSortingEnabled()
         self.resultsList.setSortingEnabled(False)
         ___qlistwidgetitem = self.resultsList.item(0)
-        ___qlistwidgetitem.setText(QCoreApplication.translate("MainWindow", u"Test", None));
+        ___qlistwidgetitem.setText(QCoreApplication.translate("MainWindow", u"", None));
         self.resultsList.setSortingEnabled(__sortingEnabled)
 
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabFlatView), QCoreApplication.translate("MainWindow", u"Flat View", None))
